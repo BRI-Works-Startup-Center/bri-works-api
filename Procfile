@@ -1,0 +1,1 @@
+web: python manage.py migrate && gunicorn bri_works_api.wsg
