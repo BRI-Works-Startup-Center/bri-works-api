@@ -1,6 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework import serializers
+from rest_framework import serializers, status
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
@@ -51,7 +51,7 @@ class LoginAPI(APIView):
             password=login_data['password']
             )
         if user is not None:
-            token = Token.objects.get(user=user)
+            token, created = Token.objects.get_or_create(user=user)
             serializer = RegisterResponse(
                 data={
                     'token': token.key
@@ -63,9 +63,9 @@ class LoginAPI(APIView):
         else:
             serializer = LoginResponse(
                 data={
-                    'message': 'User not found'
+                    'message': 'Invalid credentials'
                 }
             )
             serializer.is_valid()
 
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_401_UNAUTHORIZED)
