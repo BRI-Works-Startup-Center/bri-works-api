@@ -48,7 +48,7 @@ CORS_ALLOW_METHODS = (
 )
 
 # Application definition
-CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1',]
+CSRF_TRUSTED_ORIGINS = ['http://localhost', 'http://127.0.0.1', 'https://bri-works-api-production.up.railway.app/']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
