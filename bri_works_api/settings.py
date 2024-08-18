@@ -61,7 +61,10 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'authentication',
     'event',
-    'corsheaders'
+    'corsheaders',
+    'food',
+    'rent_space',
+    'storages'
 ]
 
 MIDDLEWARE = [
