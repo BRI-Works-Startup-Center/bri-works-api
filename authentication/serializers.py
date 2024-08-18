@@ -10,3 +10,9 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.CharField()
     password = serializers.CharField()
 
+class ResponseError(serializers.Serializer):
+    message = serializers.CharField()
+    status = serializers.IntegerField()
+
+class TokenResponse(serializers.Serializer):
+    token = serializers.CharField()

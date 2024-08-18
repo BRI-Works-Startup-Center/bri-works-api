@@ -4,17 +4,26 @@ from rest_framework import serializers, status
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
-from .serializers import RegisterSerializer, LoginSerializer
+from .serializers import RegisterSerializer, LoginSerializer, ResponseError, TokenResponse
 from .models import CustomUser
-
-class RegisterResponse(serializers.Serializer):
-    token = serializers.CharField()
 
 class RegisterAPI(APIView):
     def post(self, request):
         register_data = RegisterSerializer(data=request.data)
         register_data.is_valid(raise_exception=True)
         register_data = register_data.data
+        user_exist = CustomUser.objects.get(email=register_data['email'])
+        if user_exist:
+            serializer = ResponseError(
+                data = {
+                    'message': 'Email already registered',
+                    'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+                }
+            )
+            serializer.is_valid()
+            return Response(serializer.data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        
         new_user = CustomUser.objects.create_user(
             email=register_data['email'],
             phone_number=register_data['phone_number'],
@@ -25,7 +34,7 @@ class RegisterAPI(APIView):
 
         token = Token.objects.create(user=new_user)
 
-        serializer = RegisterResponse(
+        serializer = TokenResponse(
             data = {
                 'token': token.key
             }
@@ -33,11 +42,6 @@ class RegisterAPI(APIView):
         serializer.is_valid()
 
         return Response(serializer.data)
-    
-
-    
-class LoginResponse(serializers.Serializer):
-    message = serializers.CharField()
     
 class LoginAPI(APIView):
     def post(self, request):
@@ -52,7 +56,7 @@ class LoginAPI(APIView):
             )
         if user is not None:
             token, created = Token.objects.get_or_create(user=user)
-            serializer = RegisterResponse(
+            serializer = TokenResponse(
                 data={
                     'token': token.key
                 }
@@ -61,11 +65,11 @@ class LoginAPI(APIView):
 
             return Response(serializer.data)
         else:
-            serializer = LoginResponse(
+            serializer = ResponseError(
                 data={
-                    'message': 'Invalid credentials'
+                    'message': 'Invalid credentials',
+                    'status': status.HTTP_401_UNAUTHORIZED
                 }
             )
             serializer.is_valid()
-
             return Response(serializer.data, status=status.HTTP_401_UNAUTHORIZED)
