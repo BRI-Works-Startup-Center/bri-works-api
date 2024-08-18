@@ -14,15 +14,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.CreateModel(
-            name='EventReview',
-            fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('star', models.IntegerField()),
-                ('comment', models.TextField()),
-                ('event', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reviews', to='event.event')),
-            ],
-        ),
+
         migrations.CreateModel(
             name='EventRegistration',
             fields=[
