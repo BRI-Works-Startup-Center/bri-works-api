@@ -4,11 +4,13 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from .models import Event, EventReview, EventRegistration
 from authentication.models import CustomUser
-from .serializers import EventSerializer, EventDetailSerializer, EventReviewSerializer, CreateEventReviewResponse, EventRegistrationSerializer, CreateEventRegistrationResponse
+from .serializers import EventSerializer, EventDetailSerializer, EventReviewSerializer, CreateEventReviewResponse, EventRegistrationSerializer, CreateEventRegistrationResponse, RetrieveEventRegistrationResponse
+from django.utils import timezone
 
 class EventAPI(APIView):
   def get(self, request):
-    events = Event.objects.all()
+    now = timezone.now()
+    events = Event.objects.filter(start_time__gte = now).order_by('start_time')
     serializer = EventSerializer(events, many=True)
     serialized_data = serializer.data
     return Response(serialized_data)
@@ -81,6 +83,21 @@ class EventRegistrationAPI(APIView):
     
     serializer.is_valid(raise_exception=True)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
-    
-  
+
+class UpcomingEventAPI(APIView):
+  def get(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response("User not found")
+    user_email = token[0].user
+    now = timezone.now()
+    event_registrations = EventRegistration.objects.filter(user=user_email, event__start_time__gte=now).select_related('event').order_by('event__start_time')
+    serializer = RetrieveEventRegistrationResponse(event_registrations, many=True)
+    response_data = {
+      'message': 'Succesfully retrieved',
+      'data': serializer.data
+    }
+    # serializer.is_valid(raise_exception=True)
+    return Response(response_data)
 # Create your views here.
