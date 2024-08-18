@@ -12,12 +12,12 @@ class RegisterAPI(APIView):
         register_data = RegisterSerializer(data=request.data)
         register_data.is_valid(raise_exception=True)
         register_data = register_data.data
-        user_exist = CustomUser.objects.get(email=register_data['email'])
+        user_exist = CustomUser.objects.filter(email=register_data['email']).exists()
         if user_exist:
             serializer = ResponseError(
                 data = {
                     'message': 'Email already registered',
-                    'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+                    'status': status.HTTP_409_CONFLICT
                 }
             )
             serializer.is_valid()
