@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from .models import Event, EventReview, EventRegistration
 from authentication.models import CustomUser
-from .serializers import EventSerializer, EventDetailSerializer, EventReviewSerializer, CreateEventReviewResponse, EventRegistrationSerializer, CreateEventRegistrationResponse, RetrieveEventRegistrationResponse
+from .serializers import EventSerializer, EventDetailSerializer, EventReviewSerializer, CreateEventReviewResponse, EventRegistrationSerializer, CreateEventRegistrationResponse, RetrieveEventRegistrationResponse, RetrieveEventRegistrationDetailResponse
 from django.utils import timezone
 
 class EventAPI(APIView):
@@ -84,6 +84,31 @@ class EventRegistrationAPI(APIView):
     serializer.is_valid(raise_exception=True)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+class EventRegistrationDetailAPI(APIView):
+  def get(self, request, registration_id):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response("User not found")
+    
+    user_email = token[0].user
+    registration_exist = EventRegistration.objects.filter(pk=registration_id).exists
+    if not registration_exist:
+      return Response({
+        'message': 'Event not found'
+      }, status=status.HTTP_404_NOT_FOUND)
+    registration = EventRegistration.objects.get(pk=registration_id)
+    if registration.user != user_email:
+      return Response({
+        'message': 'User not registered to this event'
+      }, status=status.HTTP_400_BAD_REQUEST)
+    serializer = RetrieveEventRegistrationDetailResponse(registration)
+    response_data = {
+      'message': 'Succesfully retrieved',
+      'data': serializer.data
+    }
+    return Response(response_data)
+
 class UpcomingEventAPI(APIView):
   def get(self, request):
     auth_header = request.headers.get('Authorization', '')
@@ -100,4 +125,4 @@ class UpcomingEventAPI(APIView):
     }
     # serializer.is_valid(raise_exception=True)
     return Response(response_data)
-# Create your views here.
+
