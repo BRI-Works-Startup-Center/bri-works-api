@@ -1,15 +1,16 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .models import Event, EventReview
-from .serializers import EventSerializer, EventDetailSerializer, EventReviewSerializer, CreateEventReviewResponse
+from .models import Event, EventReview, EventRegistration
+from authentication.models import CustomUser
+from .serializers import EventSerializer, EventDetailSerializer, EventReviewSerializer, CreateEventReviewResponse, EventRegistrationSerializer, CreateEventRegistrationResponse
 
 class EventAPI(APIView):
   def get(self, request):
     events = Event.objects.all()
     serializer = EventSerializer(events, many=True)
     serialized_data = serializer.data
-    return Response(serialized_data )
+    return Response(serialized_data)
 
 class EventDetailAPI(APIView):
   def get(self, request, event_id):
@@ -44,4 +45,41 @@ class EventReviewAPI(APIView):
     
     serializer.is_valid(raise_exception=True)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+class EventRegistrationAPI(APIView):
+  def post(self, request):
+    print(request.data)
+    registration_data = EventRegistrationSerializer(data=request.data)
+    registration_data.is_valid(raise_exception = True)
+    registration_data = registration_data.data
+    event = Event.objects.get(pk=registration_data['event'])
+    print(event)
+    if not event:
+      return Response({"message": "No related event"}, status=status.HTTP_400_BAD_REQUEST)
+    print(registration_data['user'])
+    user = CustomUser.objects.get(email=registration_data['user'])
+    if not user:
+      return Response({"message":"No related user"}, status=status.HTTP_400_BAD_REQUEST)
+    registration = EventRegistration.objects.filter(user=registration_data['user'], event=registration_data['event']).exists()
+    if registration:
+      return Response({"message": "User already registered to the event"}, status=status.HTTP_400_BAD_REQUEST)
+
+    new_registration = EventRegistration.objects.create(
+      event=event,
+      user=user
+    )
+    
+    new_registration.save()
+    
+    serializer = CreateEventRegistrationResponse(
+      data={
+        'message': 'Registration succesfully created.',
+        'data': registration_data
+      }
+    )
+    
+    serializer.is_valid(raise_exception=True)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+  
 # Create your views here.
