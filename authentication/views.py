@@ -21,7 +21,7 @@ class RegisterAPI(APIView):
                 }
             )
             serializer.is_valid()
-            return Response(serializer.data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response(serializer.data, status=status.HTTP_409_CONFLICT)
 
         
         new_user = CustomUser.objects.create_user(
