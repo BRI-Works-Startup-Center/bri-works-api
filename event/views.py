@@ -1,6 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.authtoken.models import Token
 from .models import Event, EventReview, EventRegistration
 from authentication.models import CustomUser
 from .serializers import EventSerializer, EventDetailSerializer, EventReviewSerializer, CreateEventReviewResponse, EventRegistrationSerializer, CreateEventRegistrationResponse
@@ -48,7 +49,11 @@ class EventReviewAPI(APIView):
 
 class EventRegistrationAPI(APIView):
   def post(self, request):
-    print(request.data)
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response("User not found")
+    user_email = token[0].user
     registration_data = EventRegistrationSerializer(data=request.data)
     registration_data.is_valid(raise_exception = True)
     registration_data = registration_data.data
@@ -56,17 +61,13 @@ class EventRegistrationAPI(APIView):
     print(event)
     if not event:
       return Response({"message": "No related event"}, status=status.HTTP_400_BAD_REQUEST)
-    print(registration_data['user'])
-    user = CustomUser.objects.get(email=registration_data['user'])
-    if not user:
-      return Response({"message":"No related user"}, status=status.HTTP_400_BAD_REQUEST)
-    registration = EventRegistration.objects.filter(user=registration_data['user'], event=registration_data['event']).exists()
+    registration = EventRegistration.objects.filter(user=user_email, event=registration_data['event']).exists()
     if registration:
       return Response({"message": "User already registered to the event"}, status=status.HTTP_400_BAD_REQUEST)
 
     new_registration = EventRegistration.objects.create(
       event=event,
-      user=user
+      user=user_email
     )
     
     new_registration.save()

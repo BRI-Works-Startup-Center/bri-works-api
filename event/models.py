@@ -36,7 +36,7 @@ class EventRegistration(models.Model):
     
   
   def __str__(self):
-    return user + event
+    return str(self.user) + str(self.event)
 
 class EventReview(models.Model):
   id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)

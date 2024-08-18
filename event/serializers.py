@@ -19,7 +19,7 @@ class EventReviewSerializer(serializers.ModelSerializer):
 class EventRegistrationSerializer(serializers.ModelSerializer):
   class Meta:
     model = EventRegistration
-    fields = '__all__'
+    fields = ['event', 'registration_date', 'status']
     
 class CreateEventReviewResponse(serializers.Serializer):
     message = serializers.CharField()
