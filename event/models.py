@@ -8,7 +8,7 @@ class Event(models.Model):
   ]
   id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
   title = models.CharField(max_length=100)
-  company = models.CharField(max_length=100)
+  company = models.CharField(max_length=100, null=True, blank=True)
   location = models.CharField(max_length=100)
   price = models.IntegerField()
   start_time = models.DateTimeField()
