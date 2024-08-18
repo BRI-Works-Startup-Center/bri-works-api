@@ -11,6 +11,7 @@ from food.serializers import TenantSerializer
 class HomeAPI(APIView):
   def get(self, request):
     events = Event.objects.order_by('start_time')[:5]
+    # events = Event.objects.all()
     events_serializer = EventSerializer(events, many=True)
     # events_serializer.is_valid(raise_exception=True) 
     tenants = Tenant.objects.order_by('-rate')[:5]

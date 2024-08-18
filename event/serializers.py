@@ -1,4 +1,4 @@
-from .models import Event, EventReview
+from .models import Event, EventReview, EventRegistration
 from rest_framework import serializers
 
 class EventSerializer(serializers.ModelSerializer):
@@ -15,8 +15,17 @@ class EventReviewSerializer(serializers.ModelSerializer):
   class Meta:
     model = EventReview
     fields = '__all__'
+
+class EventRegistrationSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = EventRegistration
+    fields = '__all__'
     
 class CreateEventReviewResponse(serializers.Serializer):
     message = serializers.CharField()
     data = EventReviewSerializer()
+
+class CreateEventRegistrationResponse(serializers.Serializer):
+    message = serializers.CharField()
+    data = EventRegistrationSerializer()
     
