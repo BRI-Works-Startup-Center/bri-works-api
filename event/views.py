@@ -9,18 +9,45 @@ from django.utils import timezone
 
 class EventAPI(APIView):
   def get(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        'message': 'User not found'
+      }, status=status.HTTP_404_NOT_FOUND)
+    user = token[0].user
     now = timezone.now()
     events = Event.objects.filter(start_time__gte = now).order_by('start_time')
-    serializer = EventSerializer(events, many=True)
-    serialized_data = serializer.data
-    return Response(serialized_data)
+    data = []
+    for event in events:
+      registrations = EventRegistration.objects.filter(user=user, event=event)
+      registered = registrations.exists()
+      if not registered:
+        event_data = EventSerializer(event).data
+      else:
+        event_data = EventSerializer(event).data
+        registration_data = EventRegistrationSerializer(registrations[0]).data
+        event_data['registration_date'] = registration_data['registration_date']
+      data.append(event_data)
+    return Response(data)
 
 class EventDetailAPI(APIView):
   def get(self, request, event_id):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        'message': 'User not found'
+      }, status=status.HTTP_404_NOT_FOUND)
+    user = token[0].user
     event = Event.objects.filter(pk=event_id)[0]
-    serializer = EventDetailSerializer(event)
-    serialized_data = serializer.data
-    return Response(serialized_data)
+    event_data = EventDetailSerializer(event).data
+    registration = EventRegistration.objects.filter(user=user, event=event)
+    registered = registration.exists()
+    if registered:
+      registration_data = EventRegistrationSerializer(registration[0]).data
+      event_data['registration_date'] = registration_data['registration_date']
+    return Response(event_data)
 
 class EventReviewAPI(APIView):
   def post(self, request):

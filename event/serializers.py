@@ -2,14 +2,21 @@ from .models import Event, EventReview, EventRegistration
 from rest_framework import serializers
 
 class EventSerializer(serializers.ModelSerializer):
+  registration_date = serializers.DateTimeField(allow_null=True)
   class Meta:
     model = Event
-    fields = ["id", "title", "location", "price", "start_time", "end_time", "picture", "type", "company"]
-
+    fields = ["id", "title", "location", "price", "start_time", "end_time", "picture", "type", "company", "registration_date"]
+  
+  def get_registration_date(self, obj):
+    return None
+  
 class EventDetailSerializer(serializers.ModelSerializer):
+  registration_date = serializers.DateTimeField(allow_null=True)
   class Meta:
     model = Event
     fields = '__all__'
+  def get_registration_date(self, obj):
+    return None
 
 class EventReviewSerializer(serializers.ModelSerializer):
   class Meta:
