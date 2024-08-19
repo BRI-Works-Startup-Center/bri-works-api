@@ -38,6 +38,9 @@ class EventReviewAPI(APIView):
     if not event:
       return Response({
         "message" : "No related event"}, status=status.HTTP_400_BAD_REQUEST)
+    registration_exist = EventRegistration.objects.filter(user=user_email, event=review_data['event']).exists()
+    if not registration_exist:
+      return Response({"message": "User is not registered to the event"}, status=status.HTTP_400_BAD_REQUEST)
     review_exist = EventReview.objects.filter(user=user_email, event=review_data['event']).exists()
     if review_exist:
       return Response({"message": "User already reviewed this event"}, status=status.HTTP_400_BAD_REQUEST)
