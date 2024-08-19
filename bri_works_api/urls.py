@@ -23,6 +23,7 @@ urlpatterns = [
     path('avatar', AvatarAPI.as_view()),
     path('profile', ProfileAPI.as_view()),
     path('admin/', admin.site.urls),
-    path('auth/', include("authentication.urls")),
-    path('event/', include("event.urls")),
+    path('auth/', include('authentication.urls')),
+    path('event/', include('event.urls')),
+    path('space/', include('rent_space.urls'))
 ]
