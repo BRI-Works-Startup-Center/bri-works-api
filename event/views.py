@@ -90,7 +90,6 @@ class EventRegistrationDetailAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response("User not found")
-    
     user_email = token[0].user
     registration_exist = EventRegistration.objects.filter(pk=registration_id).exists
     if not registration_exist:
@@ -117,7 +116,24 @@ class UpcomingEventAPI(APIView):
       return Response("User not found")
     user_email = token[0].user
     now = timezone.now()
-    event_registrations = EventRegistration.objects.filter(user=user_email, event__start_time__gte=now).select_related('event').order_by('event__start_time')
+    event_registrations = EventRegistration.objects.filter(user=user_email, event__end_time__gte=now).select_related('event').order_by('event__start_time')
+    serializer = RetrieveEventRegistrationResponse(event_registrations, many=True)
+    response_data = {
+      'message': 'Succesfully retrieved',
+      'data': serializer.data
+    }
+    # serializer.is_valid(raise_exception=True)
+    return Response(response_data)
+
+class AttendedEventAPI(APIView):
+  def get(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response("User not found")
+    user_email = token[0].user
+    now = timezone.now()
+    event_registrations = EventRegistration.objects.filter(user=user_email, event__end_time__lt=now).select_related('event').order_by('event__start_time')
     serializer = RetrieveEventRegistrationResponse(event_registrations, many=True)
     response_data = {
       'message': 'Succesfully retrieved',
