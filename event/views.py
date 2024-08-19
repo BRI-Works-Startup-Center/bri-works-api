@@ -24,15 +24,26 @@ class EventDetailAPI(APIView):
 
 class EventReviewAPI(APIView):
   def post(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        "message": "User not found"
+      }, status=status.HTTP_404_NOT_FOUND)
+    user_email = token[0].user
     review_data = EventReviewSerializer(data=request.data)
     review_data.is_valid(raise_exception = True)
     review_data = review_data.data
     event = Event.objects.get(pk=review_data['event'])
     if not event:
-      return Response("No related event", status=status.HTTP_400_BAD_REQUEST)
-    
+      return Response({
+        "message" : "No related event"}, status=status.HTTP_400_BAD_REQUEST)
+    review_exist = EventReview.objects.filter(user=user_email, event=review_data['event']).exists()
+    if review_exist:
+      return Response({"message": "User already reviewed this event"}, status=status.HTTP_400_BAD_REQUEST)
     new_review = EventReview.objects.create(
       event=event,
+      user=user_email,
       star=review_data['star'],
       comment=review_data['comment']
     )

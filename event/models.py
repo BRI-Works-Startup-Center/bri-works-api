@@ -41,6 +41,8 @@ class EventRegistration(models.Model):
 class EventReview(models.Model):
   id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
   event = models.ForeignKey(Event, related_name="reviews", on_delete=models.CASCADE)
+  user = models.ForeignKey(CustomUser, to_field="email", related_name="reviewer", on_delete=models.CASCADE)
+
   star = models.IntegerField()
   comment = models.TextField()
   

@@ -14,7 +14,7 @@ class EventDetailSerializer(serializers.ModelSerializer):
 class EventReviewSerializer(serializers.ModelSerializer):
   class Meta:
     model = EventReview
-    fields = '__all__'
+    fields = ['id', 'event', 'star', 'comment']
 
 class EventRegistrationSerializer(serializers.ModelSerializer):
   class Meta:
