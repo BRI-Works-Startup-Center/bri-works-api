@@ -58,3 +58,13 @@ class OrderResponse(serializers.ModelSerializer):
   class Meta:
     model = Order
     fields = ['id', 'tenant', 'order_items', 'status', 'total_price']
+
+class OrderHistoryItemResponse(serializers.Serializer):
+  id = serializers.UUIDField()
+  tenant_name = serializers.CharField()
+  total_price = serializers.IntegerField()
+  food_picture = serializers.CharField()
+  food_name = serializers.CharField()
+  status = serializers.CharField()
+  menu_count = serializers.CharField()
+  

@@ -9,7 +9,7 @@ class SpaceSerializer(serializers.ModelSerializer):
 class SpaceDetailSerializer(serializers.ModelSerializer):
   class Meta:
     model = Space
-    fields = ["id", "location", "name", "capacity", "hourly_price", "daily_price", "picture", "description", "tv_facility", "wifi_facility", "sound_system_facility"]
+    fields = ["id", "location", "size", "name", "capacity", "hourly_price", "daily_price", "picture", "description", "tv_facility", "wifi_facility", "sound_system_facility"]
 
 class SpaceReservationSerializer(serializers.ModelSerializer):
   class Meta:
