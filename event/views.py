@@ -163,7 +163,6 @@ class UpcomingEventAPI(APIView):
       'message': 'Succesfully retrieved',
       'data': serializer.data
     }
-    # serializer.is_valid(raise_exception=True)
     return Response(response_data)
 
 class AttendedEventAPI(APIView):

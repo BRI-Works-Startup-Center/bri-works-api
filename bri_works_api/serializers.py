@@ -5,6 +5,7 @@ from rent_space.models import Space
 from authentication.models import CustomUser
 
 class SpaceHomeSerializer(serializers.ModelSerializer):
+  picture = serializers.ImageField(use_url=True, allow_null=True, required=False)
   class Meta:
     model = Space
     fields = ['id', 'name', 'picture']
@@ -29,6 +30,7 @@ class ChangeAvatarResponse(serializers.ModelSerializer):
     model = CustomUser
     fields = ['email', 'avatar']
 class ProfileSerializer(serializers.ModelSerializer):
+  avatar = serializers.ImageField(use_url=True, allow_null=True, required=False)
   class Meta:
     model = CustomUser
     fields = ['id', 'email', 'phone_number', 'avatar']
