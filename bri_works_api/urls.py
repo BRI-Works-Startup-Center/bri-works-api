@@ -25,5 +25,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('auth/', include('authentication.urls')),
     path('event/', include('event.urls')),
-    path('space/', include('rent_space.urls'))
+    path('space/', include('rent_space.urls')),
+    path('food/', include('food.urls')),
 ]
