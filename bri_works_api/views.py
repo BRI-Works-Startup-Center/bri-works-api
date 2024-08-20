@@ -19,7 +19,7 @@ class HomeAPI(APIView):
         'message': 'User not found'
       }, status=status.HTTP_404_NOT_FOUND)
     user = token[0].user
-    events = Event.objects.order_by('-start_time')[:5]
+    events = Event.objects.order_by('start_time')[:5]
     events_data = []
     for event in events:
       registrations = EventRegistration.objects.filter(user=user, event=event)
