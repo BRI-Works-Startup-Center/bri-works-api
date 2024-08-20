@@ -10,6 +10,8 @@ from event.serializers import EventSerializer, EventRegistrationSerializer
 from food.serializers import TenantSerializer
 from authentication.models import CustomUser
 
+from django.utils import timezone
+
 class HomeAPI(APIView):
   def get(self, request):
     auth_header = request.headers.get('Authorization', '')
@@ -19,7 +21,8 @@ class HomeAPI(APIView):
         'message': 'User not found'
       }, status=status.HTTP_404_NOT_FOUND)
     user = token[0].user
-    events = Event.objects.order_by('start_time')[:5]
+    now = timezone.now()
+    events = Event.objects.filter(end_time__gte=now).order_by('start_time')[:5]
     events_data = []
     for event in events:
       registrations = EventRegistration.objects.filter(user=user, event=event)
