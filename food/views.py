@@ -6,7 +6,7 @@ from rest_framework.authtoken.models import Token
 from django.utils import timezone
 
 from .models import Tenant, Order, OrderItem, FoodBeverage
-from .serializers import TenantSerializer, TenantCatalogSerializer, OrderSerializer, OrderResponse
+from .serializers import TenantSerializer, TenantCatalogSerializer, OrderSerializer, OrderResponse, OrderHistoryItemResponse
 
 class TenantAPI(APIView):
   def get(self, request):
@@ -115,12 +115,25 @@ class OrderHistoryAPI(APIView):
       return Response("User not found")
     user_email = token[0].user
     now = timezone.now()
-    orders= Order.objects.filter(user=user_email, created_at__lt=now).select_related('order_items').order_by('-created_at')
-    serializer = OrderSerializer(orders, many=True)
+    orders = Order.objects.filter(user=user_email, created_at__lt=now).order_by('-created_at')
     response_data = {
       'message': 'Succesfully retrieved',
-      'data': serializer.data
+      'data': []
     }
+    for order in orders:
+      tenant = Tenant.objects.get(pk=order.tenant.id)
+      items = OrderItem.objects.filter(order=order)
+      serializer = OrderHistoryItemResponse(data= {
+        'id': order.id,
+        'tenant_name': tenant.name,
+        'total_price': order.total_price,
+        'food_picture': items[0].item.picture,
+        'food_name': items[0].item.name,
+        'status': order.status,
+        'menu_count': items.count()
+      })
+      serializer.is_valid(raise_exception=True)
+      response_data['data'].append(serializer.data)
     return Response(response_data)
   
 
