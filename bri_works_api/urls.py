@@ -19,12 +19,12 @@ from django.urls import path, include
 from .views import HomeAPI, AvatarAPI, ProfileAPI
 
 urlpatterns = [
-    path('home', HomeAPI.as_view()),
-    path('avatar', AvatarAPI.as_view()),
-    path('profile', ProfileAPI.as_view()),
-    path('admin/', admin.site.urls),
-    path('auth/', include('authentication.urls')),
-    path('event/', include('event.urls')),
-    path('space/', include('rent_space.urls')),
-    path('food/', include('food.urls')),
+    path('api/v1/home', HomeAPI.as_view()),
+    path('api/v1/avatar', AvatarAPI.as_view()),
+    path('api/v1/profile', ProfileAPI.as_view()),
+    path('api/v1/admin/', admin.site.urls),
+    path('api/v1/auth/', include('authentication.urls')),
+    path('api/v1/event/', include('event.urls')),
+    path('api/v1/space/', include('rent_space.urls')),
+    path('api/v1/food/', include('food.urls')),
 ]
