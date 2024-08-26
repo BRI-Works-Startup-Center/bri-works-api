@@ -59,12 +59,31 @@ class OrderResponse(serializers.ModelSerializer):
     model = Order
     fields = ['id', 'tenant', 'order_items', 'status', 'total_price']
 
+class FoodBeverageOfHistoryResponse(serializers.ModelSerializer):
+  class Meta:
+    model = FoodBeverage
+    fields = ["id", "name"]
+  
+class OrderItemOfHistoryResponse(serializers.ModelSerializer):
+  item = FoodBeverageOfHistoryResponse()
+  class Meta:
+    model = OrderItem
+    fields = ['item', 'quantity']
+
 class OrderHistoryItemResponse(serializers.Serializer):
   id = serializers.UUIDField()
   tenant_name = serializers.CharField()
   total_price = serializers.IntegerField()
-  food_picture = serializers.CharField(allow_null=True)
-  food_name = serializers.CharField()
+  tenant_picture = serializers.CharField(allow_null=True)
+  # food_name = serializers.CharField()
+  items = serializers.ListField(child=OrderItemOfHistoryResponse())
   status = serializers.CharField()
   menu_count = serializers.CharField()
+
+class OrderItemResponse(serializers.ModelSerializer):
+  item = FoodBeverageSerializer()
+  total_price=serializers.IntegerField(required=False)
+  class Meta:
+    model = OrderItem
+    fields = ['item', 'quantity', 'total_price']
   

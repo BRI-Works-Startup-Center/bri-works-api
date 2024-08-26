@@ -120,16 +120,19 @@ class OrderHistoryAPI(APIView):
     for order in orders:
       tenant = Tenant.objects.get(pk=order.tenant.id)
       items = OrderItem.objects.filter(order=order)
-      serializer = OrderHistoryItemResponse(data= {
+      data = {
         'id': order.id,
         'tenant_name': tenant.name,
         'total_price': order.total_price,
-        'food_picture': items[0].item.picture,
-        'food_name': items[0].item.name,
+        # 'food_picture': items[0].item.picture,
+        'tenant_picture': tenant.picture,
+        # 'food_name': items[0].item.name,
+        'items': items,
         'status': order.status,
         'menu_count': items.count()
-      })
-      serializer.is_valid(raise_exception=True)
+      }
+      serializer = OrderHistoryItemResponse(data)
+      # serializer.is_valid(raise_exception=True)
       response_data['data'].append(serializer.data)
     return Response(response_data)
   

@@ -22,7 +22,7 @@ urlpatterns = [
     path('api/v1/home', HomeAPI.as_view()),
     path('api/v1/avatar', AvatarAPI.as_view()),
     path('api/v1/profile', ProfileAPI.as_view()),
-    path('api/v1/admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
     path('api/v1/auth/', include('authentication.urls')),
     path('api/v1/event/', include('event.urls')),
     path('api/v1/space/', include('rent_space.urls')),
