@@ -29,7 +29,7 @@ class SpaceReservation(models.Model):
   price = models.IntegerField()
   
   def __str__(self):
-    return self.id
+    return str(self.id)
 
 class SpaceReservationInvitation(models.Model):
   id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
@@ -37,5 +37,5 @@ class SpaceReservationInvitation(models.Model):
   user = models.ForeignKey(CustomUser, to_field="email", related_name="invitee", on_delete=models.CASCADE, default=None)
   
   def __str__(self):
-    return self.id
+    return str(self.id)
 # Create your models here.

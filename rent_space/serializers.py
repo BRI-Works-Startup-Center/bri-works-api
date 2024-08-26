@@ -20,6 +20,7 @@ class SpaceReservationInvitationSerializer(serializers.ModelSerializer):
   class Meta:
     model = SpaceReservationInvitation
     fields = '__all__'
+    
 class SpaceReservationRequest(serializers.Serializer):
   space_reservation = serializers.CharField()
   list_email = serializers.ListField(child = serializers.CharField())
@@ -34,11 +35,13 @@ class RetrieveSpaceReservationDetailResponse(serializers.ModelSerializer):
   class Meta:
     model = SpaceReservation
     fields = ['id', 'space_id', 'start_time', 'end_time']
+    
 class RetrieveSpaceReservationInvitationResponse(serializers.ModelSerializer):
   space_reservation = RetrieveSpaceReservationResponse()
   class Meta:
     model = SpaceReservationInvitation
     fields = ['id', 'space_reservation', 'user']
+    
 class RetrieveSpaceReservationInvitationDetailResponse(serializers.ModelSerializer):
   space_reservation = RetrieveSpaceReservationDetailResponse()
   class Meta:

@@ -8,12 +8,12 @@ class SpaceAdmin(admin.ModelAdmin):
 
 class SpaceReservationAdmin(admin.ModelAdmin):
   list_display = ("id", "space_id", "start_time", "end_time", "participant_count", "price")
-  search_fields = ("id", "name")
+  search_fields = ("id", "space_id")
   ordering = ("id",)
 
 class SpaceReservationInvitationAdmin(admin.ModelAdmin):
   list_display = ("id", "space_reservation", "user")
-  search_fields = ("id", "name")
+  search_fields = ("id", "space_reservation",)
   ordering = ("id",)
 
 admin.site.register(Space, SpaceAdmin)

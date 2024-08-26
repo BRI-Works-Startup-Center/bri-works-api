@@ -33,7 +33,6 @@ class SpaceDetailAPI(APIView):
       return Response({
         'message': 'User not found'
       }, status=status.HTTP_404_NOT_FOUND)
-    user = token[0].user
     space = Space.objects.filter(pk=space_id)[0]
     serializer = SpaceDetailSerializer(space)
     response_data = {
@@ -72,11 +71,19 @@ class SpaceReservationAPI(APIView):
     
     new_reservation.save()
     
+    new_invitation = SpaceReservationInvitation.objects.create(
+        space_reservation = new_reservation,
+        user = user_email
+    )
+    
+    new_invitation.save()
+    
     serializer = SpaceReservationSerializer(new_reservation)
     response_data = {
       'message': 'Succesfully created the reservation',
       'data': serializer.data
     }
+    
     return Response(response_data, status=status.HTTP_201_CREATED)
 
 class SpaceReservationInvitationAPI(APIView):
@@ -86,7 +93,6 @@ class SpaceReservationInvitationAPI(APIView):
     if not len(token):
       return Response({
         "message": "User not found"}, status=status.HTTP_401_UNAUTHORIZED)
-    user_email = token[0].user
     invitation_data = SpaceReservationRequest(data=request.data)
     invitation_data.is_valid(raise_exception=True)
     invitation_data = invitation_data.data

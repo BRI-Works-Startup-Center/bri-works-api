@@ -16,7 +16,6 @@ class TenantAPI(APIView):
       return Response({
         'message': 'User not found'
       }, status=status.HTTP_404_NOT_FOUND)
-    user = token[0].user
     tenants = Tenant.objects.all().order_by('-rate')
     serializer = TenantSerializer(tenants, many=True)
     response_data = {
@@ -33,7 +32,6 @@ class TenantCatalogAPI(APIView):
       return Response({
         'message': 'User not found'
       }, status=status.HTTP_404_NOT_FOUND)
-    user = token[0].user
     tenant = Tenant.objects.filter(pk=tenant_id)[0]
     serializer = TenantCatalogSerializer(tenant)
     response_data = {
@@ -91,7 +89,6 @@ class OrderDetailAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response("User not found")
-    user_email = token[0].user
     order_exist = Order.objects.filter(pk=order_id).exists()
     if not order_exist:
       return Response({
