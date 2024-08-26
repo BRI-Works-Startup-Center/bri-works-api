@@ -5,8 +5,10 @@ from rest_framework.authtoken.models import Token
 
 from authentication.models import CustomUser
 from django.utils import timezone
+from datetime import datetime
+from dateutil import parser
 from .models import Space, SpaceReservation, SpaceReservationInvitation
-from  .serializers import SpaceSerializer, SpaceDetailSerializer, SpaceReservationSerializer, SpaceReservationRequest, SpaceReservationInvitationSerializer, RetrieveSpaceReservationInvitationResponse, RetrieveSpaceReservationInvitationDetailResponse
+from .serializers import SpaceSerializer, SpaceDetailSerializer, SpaceReservationSerializer, SpaceReservationRequest, SpaceReservationInvitationSerializer, RetrieveSpaceReservationInvitationResponse, RetrieveSpaceReservationInvitationDetailResponse
 
 class SpaceAPI(APIView):
   def get(self, request):
@@ -56,9 +58,21 @@ class SpaceReservationAPI(APIView):
     space = Space.objects.get(pk=reservation_data['space_id'])
     if not space:
       return Response({"message": "No related space"}, status=status.HTTP_400_BAD_REQUEST)
-    reservation = SpaceReservation.objects.filter(user=user_email, space_id=reservation_data['space_id'], start_time__lt=reservation_data['end_time'], end_time__gt=reservation_data['start_time']).exists()
-    if reservation:
-      return Response({"message": "Space already booked in given range of time"}, status=status.HTTP_400_BAD_REQUEST)
+    reservations = SpaceReservation.objects.filter(space_id=reservation_data['space_id'], start_time__lt=reservation_data['end_time'], end_time__gt=reservation_data['start_time'])
+    reservation_exist = reservations.exists()
+    if reservation_exist:
+      unavailable_times = []
+      for reservation in reservations:
+        unavailable_times.append({
+          'start_time' : max(reservation.start_time, parser.parse(reservation_data['start_time'])),
+          'end_time' : min(reservation.end_time, parser.parse(reservation_data['end_time'])) 
+        })
+      return Response({
+        "message": "Space already booked in given range of time",
+        "data": {
+          'unavailable_times': unavailable_times
+          }
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     new_reservation = SpaceReservation.objects.create(
       space_id=space,
