@@ -14,8 +14,8 @@ class TenantAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     tenants = Tenant.objects.all().order_by('-rate')
     serializer = TenantSerializer(tenants, many=True)
     response_data = {
@@ -30,8 +30,8 @@ class TenantCatalogAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     tenant = Tenant.objects.filter(pk=tenant_id)[0]
     serializer = TenantCatalogSerializer(tenant)
     response_data = {
@@ -45,7 +45,9 @@ class OrderAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     order_data = OrderSerializer(data=request.data)
     order_data.is_valid(raise_exception = True)
@@ -88,7 +90,9 @@ class OrderDetailAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     order_exist = Order.objects.filter(pk=order_id).exists()
     if not order_exist:
       return Response({
@@ -109,7 +113,9 @@ class OrderHistoryAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     now = timezone.now()
     orders = Order.objects.filter(user=user_email, created_at__lt=now).order_by('-created_at')

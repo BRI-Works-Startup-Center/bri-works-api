@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'food',
     'rent_space',
+    'member_registration',
     'storages'
 ]
 

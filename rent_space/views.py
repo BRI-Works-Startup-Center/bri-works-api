@@ -16,9 +16,8 @@ class SpaceAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
-    user = token[0].user
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     spaces = Space.objects.all()
     serializer = SpaceSerializer(spaces, many=True)
     response_data = {
@@ -33,8 +32,8 @@ class SpaceDetailAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     space = Space.objects.filter(pk=space_id)[0]
     serializer = SpaceDetailSerializer(space)
     response_data = {
@@ -50,7 +49,7 @@ class SpaceReservationAPI(APIView):
     if not len(token):
       
       return Response({
-        "message": "User not found"}, status=status.HTTP_401_UNAUTHORIZED)
+        "message": "User has not been authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     reservation_data = SpaceReservationSerializer(data=request.data)
     reservation_data.is_valid(raise_exception = True)
@@ -72,7 +71,7 @@ class SpaceReservationAPI(APIView):
         "data": {
           'unavailable_times': unavailable_times
           }
-        }, status=status.HTTP_400_BAD_REQUEST)
+      }, status=status.HTTP_409_CONFLICT)
 
     new_reservation = SpaceReservation.objects.create(
       space_id=space,
@@ -106,7 +105,7 @@ class SpaceReservationInvitationAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        "message": "User not found"}, status=status.HTTP_401_UNAUTHORIZED)
+        "message": "User has not been authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
     invitation_data = SpaceReservationRequest(data=request.data)
     invitation_data.is_valid(raise_exception=True)
     invitation_data = invitation_data.data
@@ -118,7 +117,7 @@ class SpaceReservationInvitationAPI(APIView):
     for email in invitation_data['list_email']:
       invitation_exist = SpaceReservationInvitation.objects.filter(user=email, space_reservation=invitation_data['space_reservation']).exists()
       if invitation_exist:
-        return Response({"message": "A participant already invited to this reservation"}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"message": "A Participant already invited to this reservation"}, status=status.HTTP_409_CONFLICT)
       user = CustomUser.objects.get(email=email)
       invitation = SpaceReservationInvitation.objects.create(
         space_reservation = reservation,
@@ -133,7 +132,8 @@ class UpcomingReservationAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        "message": "User has not been authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     now = timezone.now()
     reservation_invitations = SpaceReservationInvitation.objects.filter(user=user_email, space_reservation__end_time__gte=now).select_related('space_reservation').select_related('space_reservation__space_id').order_by('space_reservation__start_time')
@@ -150,7 +150,8 @@ class AttendedReservationAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        "message": "User has not been authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     now = timezone.now()
     reservation_invitations = SpaceReservationInvitation.objects.filter(user=user_email, space_reservation__end_time__lt=now).select_related('space_reservation').select_related('space_reservation__space_id').order_by('space_reservation__start_time')
@@ -167,7 +168,8 @@ class SpaceReservationInvitationDetailAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        "message": "User has not been authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     invitation_exist = SpaceReservationInvitation.objects.filter(pk=invitation_id).exists
     if not invitation_exist:

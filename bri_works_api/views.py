@@ -5,7 +5,8 @@ from rest_framework.authtoken.models import Token
 from event.models import Event, EventRegistration
 from food.models import Tenant
 from rent_space.models import Space
-from .serializers import SpaceHomeSerializer, ProfileSerializer, ChangeAvatarResponse
+from member_registration.models import MemberRegistration
+from .serializers import SpaceHomeSerializer, ProfileSerializer, ChangeAvatarResponse, ProfileResponse
 from event.serializers import EventSerializer, EventRegistrationSerializer
 from food.serializers import TenantSerializer
 from authentication.models import CustomUser
@@ -18,8 +19,8 @@ class HomeAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user = token[0].user
     now = timezone.now()
     events = Event.objects.filter(end_time__gte=now).order_by('start_time')[:5]
@@ -55,8 +56,8 @@ class AvatarAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     user = CustomUser.objects.get(email=user_email)
     user.avatar = request.data['avatar']
@@ -74,11 +75,20 @@ class ProfileAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
-    user_email = token[0].user
-    user = CustomUser.objects.filter(email=user_email)[0]
-    serializer = ProfileSerializer(user)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
+    user = token[0].user
+    # user = CustomUser.objects.filter(email=user_email)[0]
+    package = MemberRegistration.objects.filter(user=user, expiry_date__gt = timezone.now())
+    serializer = ProfileResponse({
+      'id': user.id,
+      'email': user.email,
+      'phone_number': user.phone_number,
+      'avatar': user.avatar,
+      'current_package_name': package[0].package.name if package.exists() else None,
+      'current_package_expiry_date': package[0].expiry_date if package.exists() else None
+    }
+    )
     response_data = {
       'message': 'Succesfully retrieved profile',
       'data': serializer.data

@@ -13,8 +13,8 @@ class EventAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user = token[0].user
     now = timezone.now()
     events = Event.objects.filter(start_time__gte = now).order_by('start_time')
@@ -37,8 +37,8 @@ class EventDetailAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        'message': 'User not found'
-      }, status=status.HTTP_404_NOT_FOUND)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user = token[0].user
     event = Event.objects.filter(pk=event_id)[0]
     event_data = EventDetailSerializer(event).data
@@ -55,8 +55,8 @@ class EventReviewAPI(APIView):
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
       return Response({
-        "message": "User not found"
-      }, status=status.HTTP_404_NOT_FOUND)
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     review_data = EventReviewSerializer(data=request.data)
     review_data.is_valid(raise_exception = True)
@@ -70,7 +70,7 @@ class EventReviewAPI(APIView):
       return Response({"message": "User is not registered to the event"}, status=status.HTTP_400_BAD_REQUEST)
     review_exist = EventReview.objects.filter(user=user_email, event=review_data['event']).exists()
     if review_exist:
-      return Response({"message": "User already reviewed this event"}, status=status.HTTP_400_BAD_REQUEST)
+      return Response({"message": "User already reviewed this event"}, status=status.HTTP_409_CONFLICT)
     new_review = EventReview.objects.create(
       event=event,
       user=user_email,
@@ -95,7 +95,9 @@ class EventRegistrationAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     registration_data = EventRegistrationSerializer(data=request.data)
     registration_data.is_valid(raise_exception = True)
@@ -106,7 +108,7 @@ class EventRegistrationAPI(APIView):
       return Response({"message": "No related event"}, status=status.HTTP_400_BAD_REQUEST)
     registration = EventRegistration.objects.filter(user=user_email, event=registration_data['event']).exists()
     if registration:
-      return Response({"message": "User already registered to the event"}, status=status.HTTP_400_BAD_REQUEST)
+      return Response({"message": "User already registered to the event"}, status=status.HTTP_409_CONFLICT)
 
     new_registration = EventRegistration.objects.create(
       event=event,
@@ -130,7 +132,9 @@ class EventRegistrationDetailAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     registration_exist = EventRegistration.objects.filter(pk=registration_id).exists
     if not registration_exist:
@@ -154,7 +158,9 @@ class UpcomingEventAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     now = timezone.now()
     event_registrations = EventRegistration.objects.filter(user=user_email, event__end_time__gte=now).select_related('event').order_by('event__start_time')
@@ -170,7 +176,9 @@ class AttendedEventAPI(APIView):
     auth_header = request.headers.get('Authorization', '')
     token = Token.objects.filter(key=auth_header[6:])
     if not len(token):
-      return Response("User not found")
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     now = timezone.now()
     event_registrations = EventRegistration.objects.filter(user=user_email, event__end_time__lt=now).select_related('event').order_by('event__start_time')

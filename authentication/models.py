@@ -30,7 +30,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-
+    name = models.CharField(max_length=100, blank=True, null=True)
+    birthdate = models.DateField(blank=True, null=True)
+    address = models.CharField(max_length=100, blank=True, null=True)
+    job = models.CharField(max_length=100, blank=True, null=True)
+    institution = models.CharField(max_length=100, blank=True, null=True)
+    
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'

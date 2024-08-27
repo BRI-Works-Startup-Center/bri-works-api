@@ -55,7 +55,7 @@ class LoginAPI(APIView):
             password=login_data['password']
             )
         if user is not None:
-            token, created = Token.objects.get_or_create(user=user)
+            token, _ = Token.objects.get_or_create(user=user)
             serializer = TokenResponse(
                 data={
                     'token': token.key

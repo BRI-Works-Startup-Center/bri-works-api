@@ -29,7 +29,7 @@ class RetrieveSpaceReservationResponse(serializers.ModelSerializer):
   space_id = SpaceSerializer()
   class Meta:
     model = SpaceReservation
-    fields = ['id', 'space_id']
+    fields = ['id', 'space_id', 'start_time', 'end_time']
 class RetrieveSpaceReservationDetailResponse(serializers.ModelSerializer):
   space_id = SpaceDetailSerializer()
   class Meta:

@@ -34,3 +34,12 @@ class ProfileSerializer(serializers.ModelSerializer):
   class Meta:
     model = CustomUser
     fields = ['id', 'email', 'phone_number', 'avatar']
+
+class ProfileResponse(serializers.Serializer):
+  id = serializers.IntegerField()
+  email = serializers.CharField()
+  phone_number = serializers.CharField()
+  avatar = serializers.ImageField()
+  current_package_name = serializers.CharField()
+  current_package_expiry_date = serializers.DateTimeField()
+  

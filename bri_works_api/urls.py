@@ -27,4 +27,5 @@ urlpatterns = [
     path('api/v1/event/', include('event.urls')),
     path('api/v1/space/', include('rent_space.urls')),
     path('api/v1/food/', include('food.urls')),
+    path('api/v1/member/', include('member_registration.urls'))
 ]
