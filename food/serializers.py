@@ -1,11 +1,15 @@
 from rest_framework import serializers
-from .models import Tenant, FoodBeverage, Order, OrderItem
+from .models import Tenant, FoodBeverage, Order, OrderItem, TenantReview
 
 class TenantSerializer(serializers.ModelSerializer):
   class Meta:
     model = Tenant
     fields = ["id", "name", "location", "rate", "picture"]
 
+class TenantReviewSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = TenantReview
+    fields = ["id", "tenant", "star", "comment"]
 
 class FoodBeverageSerializer(serializers.ModelSerializer):
   class Meta:

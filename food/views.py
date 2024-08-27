@@ -5,8 +5,8 @@ from rest_framework.authtoken.models import Token
 
 from django.utils import timezone
 
-from .models import Tenant, Order, OrderItem, FoodBeverage
-from .serializers import TenantSerializer, TenantCatalogSerializer, OrderSerializer, OrderResponse, OrderHistoryItemResponse
+from .models import Tenant, Order, OrderItem, FoodBeverage, TenantReview
+from .serializers import TenantSerializer, TenantCatalogSerializer, OrderSerializer, OrderResponse, OrderHistoryItemResponse, TenantReviewSerializer
 
 class TenantAPI(APIView):
   def get(self, request):
@@ -142,7 +142,44 @@ class OrderHistoryAPI(APIView):
       response_data['data'].append(serializer.data)
     return Response(response_data)
 
-# class TenantReviewAPI(APIView):
+class TenantReviewAPI(APIView):
+  def post(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
+    user_email = token[0].user
+    review_data = TenantReviewSerializer(data=request.data)
+    review_data.is_valid(raise_exception = True)
+    review_data = review_data.data
+    tenant = Tenant.objects.get(pk=review_data['tenant'])
+    if not tenant:
+      return Response({
+        "message" : "No related tenant"}, status=status.HTTP_400_BAD_REQUEST)
+    order_exist = Order.objects.filter(user=user_email, tenant=review_data['tenant']).exists()
+    if not order_exist:
+      return Response({"message": "User never ordered from given tenant"}, status=status.HTTP_403_FORBIDDEN)
+    review_exist = TenantReview.objects.filter(user=user_email, tenant=review_data['tenant']).exists()
+    if review_exist:
+      return Response({"message": "User already reviewed this tenant"}, status=status.HTTP_409_CONFLICT)
+    new_review = TenantReview.objects.create(
+      tenant=tenant,
+      user=user_email,
+      star=review_data['star'],
+      comment=review_data['comment']
+    )
+      
+    new_review.save()
+    tenant.update_rate()
+    serializer = TenantReviewSerializer(new_review)
+    response_data = {
+      'message': 'Review succesfully created',
+      'data': serializer.data
+    }  
+      
+    return Response(response_data, status=status.HTTP_201_CREATED)
   
   
 

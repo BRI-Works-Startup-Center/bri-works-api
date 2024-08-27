@@ -11,6 +11,11 @@ class Tenant(models.Model):
   location = models.CharField(max_length=100)
   def __str__(self):
     return self.name
+  def update_rate(self):
+    avg_star = self.tenant_reviews.aggregate(models.Avg('star'))['star__avg']
+    self.rate = avg_star if avg_star else 0.0
+    self.save()
+     
   
 class FoodBeverage(models.Model):
   TYPE_CHOICES = [
@@ -49,6 +54,17 @@ class OrderItem(models.Model):
 
   def __str__(self):
     return f"{self.quantity} x {self.item.name} in Order {self.order.id}"
+
+class TenantReview(models.Model):
+  id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
+  tenant = models.ForeignKey(Tenant, related_name="tenant_reviews", on_delete=models.CASCADE)
+  user = models.ForeignKey(CustomUser, to_field="email", related_name="tenant_review", on_delete=models.CASCADE)
+
+  star = models.IntegerField()
+  comment = models.TextField()
+  
+  def __str__(self):
+    return self.comment
   
   
 

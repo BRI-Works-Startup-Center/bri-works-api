@@ -6,7 +6,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from dateutil import parser
  
-from .serializers import MemberRegistrationRequest, MemberRegistrationSerializer, MemberPackageSerializer
+from .serializers import MemberRegistrationRequest, MemberRegistrationSerializer, MemberPackageSerializer, UserMemberFormSerializer
 from .models import MemberRegistration, MemberPackage
 
 class MemberRegistrationAPI(APIView):
@@ -44,8 +44,23 @@ class MemberRegistrationAPI(APIView):
     return Response(response_data, status=status.HTTP_201_CREATED)
 
 
-# class MemberRegistrationDetailAPI(APIView):
-#   def get(self, request):
+class MemberRegistrationFormAPI(APIView):
+  def get(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
+    user = token[0].user
+    serializer = UserMemberFormSerializer(user)
+    response_data = {
+      'message': 'Succesfully retrieved',
+      'data': serializer.data
+    }
+    return Response(response_data)
+      
+    
     
 
 class MemberPackageAPI(APIView):
