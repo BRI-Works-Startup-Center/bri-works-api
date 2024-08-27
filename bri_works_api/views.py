@@ -94,3 +94,20 @@ class ProfileAPI(APIView):
       'data': serializer.data
     }
     return Response(response_data)
+
+class EmailAPI(APIView):
+  def get(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
+    user = token[0].user    
+    response_data = {
+      'message': 'Succesfully retrieved profile',
+      'data': {
+        'email': user.email
+      }
+    }
+    return Response(response_data)
