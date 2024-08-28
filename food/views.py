@@ -128,6 +128,7 @@ class OrderHistoryAPI(APIView):
       items = OrderItem.objects.filter(order=order)
       data = {
         'id': order.id,
+        'tenant_id': tenant.id,
         'tenant_name': tenant.name,
         'total_price': order.total_price,
         # 'food_picture': items[0].item.picture,

@@ -76,6 +76,7 @@ class OrderItemOfHistoryResponse(serializers.ModelSerializer):
 
 class OrderHistoryItemResponse(serializers.Serializer):
   id = serializers.UUIDField()
+  tenant_id = serializers.UUIDField()
   tenant_name = serializers.CharField()
   total_price = serializers.IntegerField()
   tenant_picture = serializers.CharField(allow_null=True)
