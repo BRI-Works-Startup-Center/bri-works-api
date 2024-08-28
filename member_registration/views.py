@@ -42,6 +42,27 @@ class MemberRegistrationAPI(APIView):
       'data': serializer.data
     }
     return Response(response_data, status=status.HTTP_201_CREATED)
+  
+  def get(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
+    user = token[0].user
+    subscription = MemberRegistration.objects.filter(user=user, expiry_date__gt=timezone.now())
+    if not subscription.exists():
+      return Response({
+        'message': 'User has no active subscription'
+      }, status=status.HTTP_404_NOT_FOUND)
+    serializer = MemberRegistrationSerializer(subscription[0])
+    response_data = {
+      'message': 'Succesfully retrieved',
+      'data': serializer.data
+    }
+    return Response(response_data)
+  
 
 
 class MemberRegistrationFormAPI(APIView):

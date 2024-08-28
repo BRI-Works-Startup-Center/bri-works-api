@@ -131,9 +131,7 @@ class OrderHistoryAPI(APIView):
         'tenant_id': tenant.id,
         'tenant_name': tenant.name,
         'total_price': order.total_price,
-        # 'food_picture': items[0].item.picture,
         'tenant_picture': tenant.picture,
-        # 'food_name': items[0].item.name,
         'items': items,
         'status': order.status,
         'menu_count': items.count()
