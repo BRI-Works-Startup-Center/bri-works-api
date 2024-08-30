@@ -79,7 +79,7 @@ class EventReviewAPI(APIView):
     )
     
     new_review.save()
-    
+    event.update_rate()
     serializer = CreateEventReviewResponse(
       data={
         'message': 'Review succesfully created.',

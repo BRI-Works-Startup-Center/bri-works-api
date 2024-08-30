@@ -2,13 +2,14 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authtoken.models import Token
+from zoneinfo import ZoneInfo
 
 from authentication.models import CustomUser
 from django.utils import timezone
 from datetime import datetime
 from dateutil import parser
-from .models import Space, SpaceReservation, SpaceReservationInvitation
-from .serializers import SpaceSerializer, SpaceDetailSerializer, SpaceReservationSerializer, SpaceReservationRequest, SpaceReservationInvitationSerializer, RetrieveSpaceReservationInvitationResponse, RetrieveSpaceReservationInvitationDetailResponse
+from .models import Space, SpaceReservation, SpaceReservationInvitation, SpaceReview
+from .serializers import SpaceSerializer, SpaceDetailSerializer, SpaceReservationSerializer, SpaceReservationRequest, SpaceReservationInvitationSerializer, RetrieveSpaceReservationInvitationResponse, RetrieveSpaceReservationInvitationDetailResponse, SpaceReviewSerializer
 
 class SpaceAPI(APIView):
   def get(self, request):
@@ -187,4 +188,71 @@ class SpaceReservationInvitationDetailAPI(APIView):
       'data': serializer.data
     }
     return Response(response_data)
+
+class SpaceReviewAPI(APIView):
+  def post(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        "message": "User has not been authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+    user = token[0].user
+    space_review_data = SpaceReviewSerializer(data=request.data)
+    space_review_data.is_valid(raise_exception=True)
+    space_review_data = space_review_data.data
+    space = Space.objects.filter(id=space_review_data['space'])
+    
+    if not space.exists():
+      return Response({
+        'message': 'There is no related space',
+      }, status=status.HTTP_400_BAD_REQUEST)
+    space = space[0]
+    space_review_exist = SpaceReview.objects.filter(user=user, space=space)
+    
+    if space_review_exist.exists():
+      return Response({
+        'message': 'User already reviewed this space',
+      }, status=status.HTTP_409_CONFLICT)
+    
+    space_review = SpaceReview.objects.create(space=space, user=user, star=space_review_data['star'], comment=space_review_data['comment'])
+    space_review.save()
+    space.update_rate()
+    response_data = SpaceReviewSerializer(space_review).data
+    return Response({
+      'message': 'Review succesfully created',
+      'data': response_data
+    }, status=status.HTTP_201_CREATED)
+
+class SpaceAvailabilityAPI(APIView):
+  def get(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        "message": "User has not been authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+    start_time_param = request.GET.get("start_time", None)
+    end_time_param = request.GET.get("end_time", None)
+    space_param = request.GET.get("space", None)
+    if not start_time_param or not end_time_param or not space_param:
+      return Response({
+        'message': 'start_time, end_time, and space in the request params is not provided'
+      }, status=status.HTTP_400_BAD_REQUEST)
+    
+    start_time = datetime.strptime(start_time_param, "%Y-%m-%d %H:%M:%S")
+    end_time = datetime.strptime(end_time_param, "%Y-%m-%d %H:%M:%S")
+    space = Space.objects.filter(id=request.GET.get("space", None))
+    if not space.exists():
+      return Response({
+        'message': 'No Space found'
+      }, status=status.HTTP_400_BAD_REQUEST)
+    reservations = SpaceReservation.objects.filter(start_time__lt=end_time, end_time__gt=start_time)
+    reservation_exist = reservations.exists()
+    return Response({
+      'message': 'Succesfully retrieved availability',
+      'data': {
+        'exist': reservation_exist
+      }
+    })
+    
+    
 # Create your views here.

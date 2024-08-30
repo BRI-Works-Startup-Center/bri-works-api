@@ -6,7 +6,7 @@ from event.models import Event, EventRegistration
 from food.models import Tenant
 from rent_space.models import Space
 from member_registration.models import MemberRegistration
-from .serializers import SpaceHomeSerializer, ProfileSerializer, ChangeAvatarResponse, ProfileResponse
+from .serializers import SpaceHomeSerializer, ChangeAvatarRequest, UpdateProfileResponse, ChangeAvatarResponse, ProfileResponse, UpdateProfileRequest
 from event.serializers import EventSerializer, EventRegistrationSerializer
 from food.serializers import TenantSerializer
 from authentication.models import CustomUser
@@ -59,6 +59,9 @@ class AvatarAPI(APIView):
         'message': 'User has not been authenticated'
       }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
+    request_data = ChangeAvatarRequest(data=request.data)
+    request_data.is_valid(raise_exception=True)
+    request_data = request_data.data
     user = CustomUser.objects.get(email=user_email)
     user.avatar = request.data['avatar']
     user.save()
@@ -94,6 +97,35 @@ class ProfileAPI(APIView):
       'data': serializer.data
     }
     return Response(response_data)
+  
+  def put(self, request):
+    auth_header = request.headers.get('Authorization', '')
+    token = Token.objects.filter(key=auth_header[6:])
+    if not len(token):
+      return Response({
+        'message': 'User has not been authenticated'
+      }, status=status.HTTP_401_UNAUTHORIZED)
+    user = token[0].user
+    request_data = UpdateProfileRequest(data=request.data)
+    request_data.is_valid(raise_exception=True)
+    if not request_data.data['phone_number'].isnumeric():
+      return Response({
+        'message': 'Invalid phone number'   
+      }, status=status.HTTP_400_BAD_REQUEST)
+    user.phone_number = request_data.data['phone_number']
+    user.save()
+    serializer = UpdateProfileResponse({
+      'id': user.id,
+      'email': user.email,
+      'phone_number': user.phone_number,
+      'avatar': user.avatar,
+
+    })
+    return Response({
+      'message': 'Succesfully updated profile',
+      'data': serializer.data
+    })
+    
 
 class EmailAPI(APIView):
   def get(self, request):

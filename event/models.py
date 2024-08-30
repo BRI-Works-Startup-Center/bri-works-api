@@ -19,9 +19,16 @@ class Event(models.Model):
   description = models.TextField()
   type = models.CharField(choices=TYPE_CHOICES, default='WORKSHOP')
   capacity = models.IntegerField()
+  rate = models.FloatField(blank=True, null=True)
+
   
   def __str__(self):
     return self.title
+  
+  def update_rate(self):
+    avg_star = self.reviews.aggregate(models.Avg('star'))['star__avg']
+    self.rate = avg_star if avg_star else 0.0
+    self.save()
 
 class EventRegistration(models.Model):
   STATUS_CHOICES = [
@@ -48,4 +55,6 @@ class EventReview(models.Model):
   
   def __str__(self):
     return self.comment
+  
+  
 # Create your models here.

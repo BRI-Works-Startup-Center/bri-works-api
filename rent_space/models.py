@@ -15,9 +15,16 @@ class Space(models.Model):
   sound_system_facility = models.BooleanField()
   location = models.CharField(max_length=100)
   capacity = models.IntegerField()
+  rate = models.FloatField(blank=True, null=True)
+
   
   def __str__(self):
     return self.name
+  
+  def update_rate(self):
+    avg_star = self.space_reviews.aggregate(models.Avg('star'))['star__avg']
+    self.rate = avg_star if avg_star else 0.0
+    self.save()
 
 class SpaceReservation(models.Model):
   id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
@@ -38,4 +45,16 @@ class SpaceReservationInvitation(models.Model):
   
   def __str__(self):
     return str(self.id)
+
+class SpaceReview(models.Model):
+  id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
+  user = models.ForeignKey(CustomUser, to_field="email", related_name="user_space_reviews", on_delete=models.CASCADE, blank=True, null=True)
+  space = models.ForeignKey(Space, related_name="space_reviews", on_delete=models.CASCADE) 
+  star = models.IntegerField()
+  comment = models.TextField()
+  
+  def __str__(self):
+    return str(self.id) + str(self.star) + str(self.comment)
+
+  
 # Create your models here.

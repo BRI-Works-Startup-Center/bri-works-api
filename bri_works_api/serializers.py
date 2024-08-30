@@ -25,6 +25,9 @@ class HomeResponse(serializers.Serializer):
   message = serializers.CharField()
   data = HomeSerializer()
 
+class ChangeAvatarRequest(serializers.Serializer):
+  avatar = serializers.ImageField()
+
 class ChangeAvatarResponse(serializers.ModelSerializer):
   class Meta:
     model = CustomUser
@@ -42,4 +45,14 @@ class ProfileResponse(serializers.Serializer):
   avatar = serializers.ImageField()
   current_package_name = serializers.CharField()
   current_package_expiry_date = serializers.DateTimeField()
+
+class UpdateProfileRequest(serializers.Serializer):
+  phone_number = serializers.CharField()
+
+class UpdateProfileResponse(serializers.Serializer):
+  id = serializers.IntegerField()
+  email = serializers.CharField()
+  phone_number = serializers.CharField()
+  avatar = serializers.ImageField()
+  
   

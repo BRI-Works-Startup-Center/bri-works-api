@@ -3,7 +3,7 @@ from .models import Event, EventReview, EventRegistration
 
 # Register your models here.
 class EventAdmin(admin.ModelAdmin):
-  list_display = ("id", "title", "location", "price", "start_time", "end_time", "picture", "description", "type", "capacity")
+  list_display = ("id", "title", "location", "price", "start_time", "end_time", "picture", "description", "type", "capacity", "rate")
   search_fields = ("title",)
   ordering = ("-start_time",)
   

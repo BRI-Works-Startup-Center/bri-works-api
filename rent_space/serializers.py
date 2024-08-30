@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Space, SpaceReservation, SpaceReservationInvitation
+from .models import Space, SpaceReservation, SpaceReservationInvitation, SpaceReview 
 
 class SpaceSerializer(serializers.ModelSerializer):
   class Meta:
@@ -48,3 +48,7 @@ class RetrieveSpaceReservationInvitationDetailResponse(serializers.ModelSerializ
     model = SpaceReservationInvitation
     fields = ['id', 'space_reservation', 'user']
   
+class SpaceReviewSerializer(serializers.ModelSerializer):
+  class Meta:
+    model = SpaceReview
+    fields = '__all__'

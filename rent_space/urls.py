@@ -1,5 +1,5 @@
 from django.urls import path, re_path
-from .views import SpaceAPI, SpaceDetailAPI, SpaceReservationAPI, SpaceReservationInvitationAPI, UpcomingReservationAPI, AttendedReservationAPI, SpaceReservationInvitationDetailAPI
+from .views import SpaceAPI, SpaceDetailAPI, SpaceReviewAPI, SpaceAvailabilityAPI, SpaceReservationAPI, SpaceReservationInvitationAPI, UpcomingReservationAPI, AttendedReservationAPI, SpaceReservationInvitationDetailAPI
 
 urlpatterns = [
   path("", SpaceAPI.as_view()),
@@ -9,4 +9,6 @@ urlpatterns = [
   path("attended", AttendedReservationAPI.as_view()),
   path("reserved/<uuid:invitation_id>", SpaceReservationInvitationDetailAPI.as_view()),
   path("<uuid:space_id>", SpaceDetailAPI.as_view()),
+  path("review", SpaceReviewAPI.as_view()),
+  path("availability", SpaceAvailabilityAPI.as_view())
 ]
