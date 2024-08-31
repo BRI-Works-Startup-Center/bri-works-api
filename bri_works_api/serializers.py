@@ -45,14 +45,28 @@ class ProfileResponse(serializers.Serializer):
   avatar = serializers.ImageField()
   current_package_name = serializers.CharField()
   current_package_expiry_date = serializers.DateTimeField()
+  name = serializers.CharField()
+  address = serializers.CharField()
+  job = serializers.CharField()
+  institution = serializers.CharField()
+  birthdate = serializers.DateField()
 
-class UpdateProfileRequest(serializers.Serializer):
+class UpdateProfileRequest(serializers.ModelSerializer):
   phone_number = serializers.CharField()
+  class Meta:
+    model = CustomUser
+    fields = ['phone_number', 'job', 'address', 'birthdate', 'institution', 'name']
 
 class UpdateProfileResponse(serializers.Serializer):
   id = serializers.IntegerField()
   email = serializers.CharField()
   phone_number = serializers.CharField()
   avatar = serializers.ImageField()
+  name = serializers.CharField()
+  birthdate = serializers.DateField()
+  job = serializers.CharField()
+  address = serializers.CharField()
+  institution = serializers.CharField()
+  
   
   

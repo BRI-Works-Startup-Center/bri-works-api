@@ -12,6 +12,7 @@ from food.serializers import TenantSerializer
 from authentication.models import CustomUser
 
 from django.utils import timezone
+from datetime import datetime
 
 class HomeAPI(APIView):
   def get(self, request):
@@ -89,7 +90,12 @@ class ProfileAPI(APIView):
       'phone_number': user.phone_number,
       'avatar': user.avatar,
       'current_package_name': package[0].package.name if package.exists() else None,
-      'current_package_expiry_date': package[0].expiry_date if package.exists() else None
+      'current_package_expiry_date': package[0].expiry_date if package.exists() else None,
+      'name': user.name,
+      'address': user.address,
+      'job': user.job,
+      'birthdate': user.birthdate,
+      'institution': user.institution
     }
     )
     response_data = {
@@ -113,13 +119,22 @@ class ProfileAPI(APIView):
         'message': 'Invalid phone number'   
       }, status=status.HTTP_400_BAD_REQUEST)
     user.phone_number = request_data.data['phone_number']
+    user.name = request_data.data['name']
+    user.birthdate = datetime.strptime((request_data.data['birthdate']), '%Y-%m-%d').date()
+    user.job = request_data.data['job']
+    user.address = request_data.data['address']
+    user.institution = request_data.data['institution']
     user.save()
     serializer = UpdateProfileResponse({
       'id': user.id,
       'email': user.email,
       'phone_number': user.phone_number,
       'avatar': user.avatar,
-
+      'name': user.name,
+      'birthdate': user.birthdate,
+      'address': user.address,
+      'job': user.job,
+      'institution': user.institution
     })
     return Response({
       'message': 'Succesfully updated profile',

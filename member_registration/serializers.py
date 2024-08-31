@@ -5,12 +5,6 @@ from authentication.models import CustomUser
 
 class MemberRegistrationRequest(serializers.Serializer):
   package = serializers.UUIDField()
-  name = serializers.CharField()
-  birthdate = serializers.DateField()
-  address = serializers.CharField()
-  job = serializers.CharField()
-  institution = serializers.CharField(allow_null=True, required=False)
-
 
 class MemberPackageSerializer(serializers.ModelSerializer):
   class Meta:

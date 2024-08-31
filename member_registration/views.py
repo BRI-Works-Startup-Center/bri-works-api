@@ -28,12 +28,6 @@ class MemberRegistrationAPI(APIView):
         'message': 'User already has its own membership',
         'status': status.HTTP_409_CONFLICT
       })
-    user.name = request_data['name']
-    user.address = request_data['address']
-    user.job = request_data['job']
-    user.birthdate = parser.parse(request_data['birthdate'])
-    user.institution = request_data['institution']
-    user.save()
     new_membership = MemberRegistration.objects.create(user = user, package = package)
     new_membership.save()
     serializer = MemberRegistrationSerializer(new_membership)
