@@ -1,5 +1,6 @@
 from .models import Event, EventReview, EventRegistration
 from rest_framework import serializers
+from payment.serializers import CreateSnapPaymentResponse
 
 class EventSerializer(serializers.ModelSerializer):
   registration_date = serializers.DateTimeField(allow_null=True)
@@ -41,8 +42,13 @@ class RetrieveEventRegistrationDetailResponse(serializers.ModelSerializer):
 class CreateEventReviewResponse(serializers.Serializer):
     message = serializers.CharField()
     data = EventReviewSerializer()
+    
+
+class CreateEventRegistrationResponseData(serializers.Serializer):
+  transaction_detail = CreateSnapPaymentResponse()
+  event_registration = EventRegistrationSerializer()
 
 class CreateEventRegistrationResponse(serializers.Serializer):
-    message = serializers.CharField()
-    data = EventRegistrationSerializer()
+  message = serializers.CharField()
+  data = CreateEventRegistrationResponseData()
     

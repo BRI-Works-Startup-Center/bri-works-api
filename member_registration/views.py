@@ -5,9 +5,15 @@ from rest_framework.views import status
 from django.utils import timezone
 from rest_framework.views import APIView
 from dateutil import parser
+from django.db.transaction import atomic
  
-from .serializers import MemberRegistrationRequest, MemberRegistrationSerializer, MemberPackageSerializer, UserMemberFormSerializer
+from .serializers import MemberRegistrationRequest, MemberRegistrationSerializer, MemberPackageSerializer, UserMemberFormSerializer, CreateMemberRegistrationResponse
 from .models import MemberRegistration, MemberPackage
+from payment.models import PaymentTransaction
+
+import midtransclient
+import os
+
 
 class MemberRegistrationAPI(APIView):
   def post(self, request):
@@ -22,15 +28,49 @@ class MemberRegistrationAPI(APIView):
     request_data.is_valid(raise_exception=True)
     request_data = request_data.data
     package = MemberPackage.objects.get(pk=request_data['package'])
-    current_membership = MemberRegistration.objects.filter(user = user, expiry_date__gt = timezone.now())
+    current_membership = MemberRegistration.objects.filter(user = user, expiry_date__gt = timezone.now(), status = 'REGISTERED')
     if current_membership.exists():
       return Response({
         'message': 'User already has its own membership',
         'status': status.HTTP_409_CONFLICT
+      }, status=status.HTTP_409_CONFLICT)
+    with atomic():
+      new_membership = MemberRegistration.objects.create(user = user, package = package)
+      new_membership.save()
+      snap = midtransclient.Snap(
+        is_production = True if os.getenv('MIDTRANS_IS_PRODUCTION') == 'True' else False,
+        server_key=str(os.getenv('MIDTRANS_SERVER_KEY'))
+      )
+      snap_transaction = snap.create_transaction({
+        "transaction_details": {
+          "order_id": f'member_{new_membership.id}',
+          "gross_amount": package.price
+        },
+        "item_details": {
+          "name": f'{package.name} Membership',
+          "quantity": 1,
+          "price": package.price
+        }
       })
-    new_membership = MemberRegistration.objects.create(user = user, package = package)
-    new_membership.save()
-    serializer = MemberRegistrationSerializer(new_membership)
+      snap_token = snap_transaction['token']
+      snap_redirect_url = snap_transaction['redirect_url']
+      new_payment = PaymentTransaction.objects.create(
+        order_id = f'member_{new_membership.id}',
+        type = 'MEMBER',
+        gross_amount = package.price,
+        midtrans_token = snap_token,
+        redirect_url = snap_redirect_url,
+      )
+      new_payment.save()
+      
+    serializer = CreateMemberRegistrationResponse(data={
+      "transaction_details": {
+        "token": snap_token,
+        "redirect_url": snap_redirect_url
+      },
+      "member_registration": MemberRegistrationSerializer(new_membership).data
+    })
+    serializer.is_valid(raise_exception=True)
     response_data = {
       'message': 'Succesfully created the membership',
       'data': serializer.data

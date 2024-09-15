@@ -6,11 +6,17 @@ from zoneinfo import ZoneInfo
 
 from authentication.models import CustomUser
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.db.transaction import atomic, set_rollback
 from datetime import datetime
 from dateutil import parser
 from .models import Space, SpaceReservation, SpaceReservationInvitation, SpaceReview
-from .serializers import SpaceSerializer, SpaceDetailSerializer, SpaceReservationSerializer, SpaceReservationRequest, SpaceReservationInvitationSerializer, RetrieveSpaceReservationInvitationResponse, RetrieveSpaceReservationInvitationDetailResponse, SpaceReviewSerializer
+from .serializers import SpaceSerializer, SpaceDetailSerializer, SpaceReservationSerializer, SpaceReservationRequest, SpaceReservationInvitationSerializer, RetrieveSpaceReservationInvitationResponse, RetrieveSpaceReservationInvitationDetailResponse, SpaceReviewSerializer, CreateSpaceReservationResponse
+from payment.models import PaymentTransaction
+from .utils import send_invitation_email, generate_time_string
 
+import midtransclient
+import os
 class SpaceAPI(APIView):
   def get(self, request):
     auth_header = request.headers.get('Authorization', '')
@@ -58,7 +64,7 @@ class SpaceReservationAPI(APIView):
     space = Space.objects.get(pk=reservation_data['space_id'])
     if not space:
       return Response({"message": "No related space"}, status=status.HTTP_400_BAD_REQUEST)
-    reservations = SpaceReservation.objects.filter(space_id=reservation_data['space_id'], start_time__lt=reservation_data['end_time'], end_time__gt=reservation_data['start_time'])
+    reservations = SpaceReservation.objects.filter(space_id=reservation_data['space_id'], start_time__lt=reservation_data['end_time'], end_time__gt=reservation_data['start_time'], status='REGISTERED')
     reservation_exist = reservations.exists()
     if reservation_exist:
       unavailable_times = []
@@ -73,26 +79,61 @@ class SpaceReservationAPI(APIView):
           'unavailable_times': unavailable_times
           }
       }, status=status.HTTP_409_CONFLICT)
-
-    new_reservation = SpaceReservation.objects.create(
-      space_id=space,
-      user=user_email,
-      participant_count=reservation_data['participant_count'],
-      price=reservation_data['price'],
-      start_time=reservation_data['start_time'],
-      end_time=reservation_data['end_time']
-    )
+    with atomic():
+      new_reservation = SpaceReservation.objects.create(
+        space_id=space,
+        user=user_email,
+        participant_count=reservation_data['participant_count'],
+        price=reservation_data['price'],
+        start_time=reservation_data['start_time'],
+        end_time=reservation_data['end_time']
+      )
     
-    new_reservation.save()
-    
-    new_invitation = SpaceReservationInvitation.objects.create(
+      new_reservation.save()
+      snap = midtransclient.Snap(
+        is_production = True if os.getenv('MIDTRANS_IS_PRODUCTION') == 'True' else False,
+        server_key = str(os.getenv('MIDTRANS_SERVER_KEY')),
+        client_key= str(os.getenv('MIDTRANS_CLIENT_KEY'))
+      )
+      order_id = f'space_{new_reservation.id}'
+      reservation_price = new_reservation.price
+      snap_transaction = snap.create_transaction({
+        "transaction_details": {
+          "order_id": order_id,
+          "gross_amount": reservation_price
+        },
+        "item_details": {
+          "price": reservation_price,
+          "quantity": 1,
+          "name": f'{space.name} Reservation'
+        }
+      })
+      snap_token = snap_transaction['token']
+      snap_redirect_url = snap_transaction['redirect_url']
+      new_payment = PaymentTransaction.objects.create(
+        order_id = f'space_{new_reservation.id}',
+        type = 'SPACE',
+        gross_amount = reservation_price,
+        midtrans_token = snap_token,
+        redirect_url = snap_redirect_url,
+      )
+      new_payment.save()
+      
+      new_invitation = SpaceReservationInvitation.objects.create(
         space_reservation = new_reservation,
         user = user_email
-    )
+      )
     
-    new_invitation.save()
+      new_invitation.save()
     
-    serializer = SpaceReservationSerializer(new_reservation)
+    serializer =  CreateSpaceReservationResponse(data={
+      'transaction_details': {
+        'token': snap_token,
+        'redirect_url': snap_redirect_url
+      },
+      'space_reservation': SpaceReservationSerializer(new_reservation).data
+    })
+    serializer.is_valid(raise_exception=True)
     response_data = {
       'message': 'Succesfully created the reservation',
       'data': serializer.data
@@ -107,25 +148,52 @@ class SpaceReservationInvitationAPI(APIView):
     if not len(token):
       return Response({
         "message": "User has not been authenticated"}, status=status.HTTP_401_UNAUTHORIZED)
+    reserver = token[0].user
     invitation_data = SpaceReservationRequest(data=request.data)
     invitation_data.is_valid(raise_exception=True)
     invitation_data = invitation_data.data
-    reservation = SpaceReservation.objects.get(pk=invitation_data['space_reservation'])
+    reservation = SpaceReservation.objects.filter(pk=invitation_data['space_reservation'], user=reserver)
+    if not reservation.exists():
+      return Response({
+        "message": "This user is not the reserver or the reservation isn't exist"}, status=status.HTTP_400_BAD_REQUEST)
+    reservation = reservation.first()
     response_data = {
       'message': 'Succesfully invite all the participant',
       'data': []
     }
-    for email in invitation_data['list_email']:
-      invitation_exist = SpaceReservationInvitation.objects.filter(user=email, space_reservation=invitation_data['space_reservation']).exists()
-      if invitation_exist:
-        return Response({"message": "A Participant already invited to this reservation"}, status=status.HTTP_409_CONFLICT)
-      user = CustomUser.objects.get(email=email)
-      invitation = SpaceReservationInvitation.objects.create(
-        space_reservation = reservation,
-        user = user
-      )
-      invitation.save()
-      response_data['data'].append(SpaceReservationInvitationSerializer(invitation).data)
+    qr_code_list = []
+    with atomic():
+      for email in invitation_data['list_email']:
+        invitation_exist = SpaceReservationInvitation.objects.filter(user=email, space_reservation=invitation_data['space_reservation']).exists()
+        if invitation_exist:
+          set_rollback(True)
+          return Response({"message": "A participant already invited to this reservation"}, status=status.HTTP_409_CONFLICT)
+        
+        user = CustomUser.objects.filter(email=email)
+        
+        if not user.exists():
+          set_rollback(True)
+          return Response({"message": "A participant is not registered in this app"}, status=status.HTTP_400_BAD_REQUEST)
+        user = user.first()
+        invitation = SpaceReservationInvitation.objects.create(
+          space_reservation = reservation,
+          user = user
+        )
+        invitation.save()
+        qr_code_list.append(invitation.id)
+        response_data['data'].append(SpaceReservationInvitationSerializer(invitation).data)
+        print(email)
+    reserver_invitation = SpaceReservationInvitation.objects.get(space_reservation = reservation, user=reserver)
+  
+    invitation_data['list_email'].append(reserver.email)
+    qr_code_list.append(reserver_invitation.id)
+    
+    send_invitation_email(
+      subject='[UI BRI Works] Invitation for co-working space reservation',
+      recipient_list=invitation_data['list_email'],
+      location=reservation.space_id.location,
+      time=generate_time_string(reservation.start_time, reservation.end_time),
+      qr_code_data_list=qr_code_list)
     return Response(response_data, status=status.HTTP_201_CREATED)
 
 class UpcomingReservationAPI(APIView):
@@ -207,12 +275,12 @@ class SpaceReviewAPI(APIView):
         'message': 'There is no related space',
       }, status=status.HTTP_400_BAD_REQUEST)
     space = space[0]
-    space_review_exist = SpaceReview.objects.filter(user=user, space=space)
+    # space_review_exist = SpaceReview.objects.filter(user=user, space=space)
     
-    if space_review_exist.exists():
-      return Response({
-        'message': 'User already reviewed this space',
-      }, status=status.HTTP_409_CONFLICT)
+    # if space_review_exist.exists():
+    #   return Response({
+    #     'message': 'User already reviewed this space',
+    #   }, status=status.HTTP_409_CONFLICT)
     
     space_review = SpaceReview.objects.create(space=space, user=user, star=space_review_data['star'], comment=space_review_data['comment'])
     space_review.save()
@@ -245,7 +313,7 @@ class SpaceAvailabilityAPI(APIView):
       return Response({
         'message': 'No Space found'
       }, status=status.HTTP_400_BAD_REQUEST)
-    reservations = SpaceReservation.objects.filter(start_time__lt=end_time, end_time__gt=start_time)
+    reservations = SpaceReservation.objects.filter(status='REGISTERED', start_time__lt=end_time, end_time__gt=start_time)
     reservation_exist = reservations.exists()
     return Response({
       'message': 'Succesfully retrieved availability',

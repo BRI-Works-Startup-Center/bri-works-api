@@ -27,6 +27,12 @@ class Space(models.Model):
     self.save()
 
 class SpaceReservation(models.Model):
+  STATUS_CHOICES = [
+    ('PENDING', 'PENDING'),
+    ('CANCELLED', 'CANCELLED'),
+    ('REGISTERED', 'REGISTERED'),
+    ('ATTENDED', 'ATTENDED')
+  ]
   id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
   space_id = models.ForeignKey(Space, related_name="reservations", on_delete=models.CASCADE)
   user = models.ForeignKey(CustomUser, to_field="email", related_name="reserver", on_delete=models.CASCADE, default=None)
@@ -34,7 +40,8 @@ class SpaceReservation(models.Model):
   end_time = models.DateTimeField()
   participant_count = models.IntegerField()
   price = models.IntegerField()
-  
+  status = models.CharField(choices=STATUS_CHOICES, default='PENDING')
+
   def __str__(self):
     return str(self.id)
 
@@ -48,7 +55,8 @@ class SpaceReservationInvitation(models.Model):
 
 class SpaceReview(models.Model):
   id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
-  user = models.ForeignKey(CustomUser, to_field="email", related_name="user_space_reviews", on_delete=models.CASCADE, blank=True, null=True)
+  user = models.ForeignKey(CustomUser, to_field="email", related_name="user_space_reviews", on_delete=models.CASCADE, blank=True, null=True
+                           )
   space = models.ForeignKey(Space, related_name="space_reviews", on_delete=models.CASCADE) 
   star = models.IntegerField()
   comment = models.TextField()

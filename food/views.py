@@ -4,9 +4,15 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 
 from django.utils import timezone
+from django.db.transaction import atomic
+from django.db.models import Q
 
 from .models import Tenant, Order, OrderItem, FoodBeverage, TenantReview
-from .serializers import TenantSerializer, TenantCatalogSerializer, OrderSerializer, OrderResponse, OrderHistoryItemResponse, TenantReviewSerializer
+from .serializers import TenantSerializer, TenantCatalogSerializer, OrderSerializer, OrderResponse, OrderHistoryItemResponse, TenantReviewSerializer, CreateOrderResponse
+from payment.models import PaymentTransaction
+
+import midtransclient
+import os
 
 class TenantAPI(APIView):
   def get(self, request):
@@ -55,30 +61,58 @@ class OrderAPI(APIView):
     tenant = Tenant.objects.get(pk=order_data['tenant'])
     if not tenant:
       return Response({"message": "No related event"}, status=status.HTTP_400_BAD_REQUEST)
-
-    new_order = Order.objects.create(
-      tenant=tenant,
-      user=user_email,
-    )
-    
-    new_order.save()
-    new_order.total_price = 0
-    for order_item_data in order_data['order_items']:
-      foodbeverage = FoodBeverage.objects.get(pk=order_item_data['item'])
-      order_item = OrderItem.objects.create(
-        order=new_order,
-        item=foodbeverage,
-        quantity=order_item_data['quantity'],
-        total_price=foodbeverage.price * order_item_data['quantity']
+    with atomic():
+      new_order = Order.objects.create(
+        tenant=tenant,
+        user=user_email,
       )
-      new_order.total_price = new_order.total_price + order_item.total_price 
-      order_item.save()
-    new_order.save()
-    
-    
-    
-    serializer = OrderSerializer(new_order)
-    
+      
+      new_order.save()
+      new_order.total_price = 0
+      for order_item_data in order_data['order_items']:
+        foodbeverage = FoodBeverage.objects.get(pk=order_item_data['item'])
+        order_item = OrderItem.objects.create(
+          order=new_order,
+          item=foodbeverage,
+          quantity=order_item_data['quantity'],
+          total_price=foodbeverage.price * order_item_data['quantity']
+        )
+        new_order.total_price = new_order.total_price + order_item.total_price 
+        order_item.save()
+      new_order.save()
+      snap = midtransclient.Snap(
+        is_production = True if os.getenv('MIDTRANS_IS_PRODUCTION') == 'True' else False,
+        server_key = str(os.getenv('MIDTRANS_SERVER_KEY')),
+        client_key= str(os.getenv('MIDTRANS_CLIENT_KEY'))
+      )
+      order_id = f'food_{new_order.id}'
+      total_price = new_order.total_price
+      snap_transaction = snap.create_transaction({
+        "transaction_details": {
+          "order_id": order_id,
+          "gross_amount": total_price
+        }
+      })
+      snap_token = snap_transaction['token']
+      snap_redirect_url = snap_transaction['redirect_url']
+      new_payment = PaymentTransaction.objects.create(
+        order_id = f'food_{new_order.id}',
+        type = 'FOOD',
+        gross_amount = total_price,
+        midtrans_token = snap_token,
+        redirect_url = snap_redirect_url,
+      )
+      new_payment.save()
+    print(f'token {snap_token}')
+    print(f'redirect url {snap_redirect_url}')
+    serializer = CreateOrderResponse(data={
+      'transaction_details': {
+        'token': snap_token,
+        'redirect_url': snap_redirect_url
+      },
+      'order': OrderSerializer(new_order).data
+    })
+    serializer.is_valid(raise_exception=True)
     response_data = {
       'message': 'Order succesfully created.',
       'data': serializer.data
@@ -118,7 +152,7 @@ class OrderHistoryAPI(APIView):
       }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     now = timezone.now()
-    orders = Order.objects.filter(user=user_email, created_at__lt=now).order_by('-created_at')
+    orders = Order.objects.filter(Q(status = 'REGISTERED') | Q(status = 'PROCESSING') | Q(status= 'DONE'), user=user_email, created_at__lt=now).order_by('-created_at')
     response_data = {
       'message': 'Succesfully retrieved',
       'data': []
@@ -157,19 +191,18 @@ class TenantReviewAPI(APIView):
     if not tenant:
       return Response({
         "message" : "No related tenant"}, status=status.HTTP_400_BAD_REQUEST)
-    order_exist = Order.objects.filter(user=user_email, tenant=review_data['tenant']).exists()
+    order_exist = Order.objects.filter(status= 'DONE', user=user_email, tenant=review_data['tenant']).exists()
     if not order_exist:
       return Response({"message": "User never ordered from given tenant"}, status=status.HTTP_403_FORBIDDEN)
-    review_exist = TenantReview.objects.filter(user=user_email, tenant=review_data['tenant']).exists()
-    if review_exist:
-      return Response({"message": "User already reviewed this tenant"}, status=status.HTTP_409_CONFLICT)
+    # review_exist = TenantReview.objects.filter(user=user_email, tenant=review_data['tenant']).exists()
+    # if review_exist:
+    #   return Response({"message": "User already reviewed this tenant"}, status=status.HTTP_409_CONFLICT)
     new_review = TenantReview.objects.create(
       tenant=tenant,
       user=user_email,
       star=review_data['star'],
       comment=review_data['comment']
     )
-      
     new_review.save()
     tenant.update_rate()
     serializer = TenantReviewSerializer(new_review)

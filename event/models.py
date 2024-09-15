@@ -32,6 +32,8 @@ class Event(models.Model):
 
 class EventRegistration(models.Model):
   STATUS_CHOICES = [
+    ('PENDING', 'PENDING'),
+    ('CANCELLED', 'CANCELLED'),
     ('REGISTERED', 'REGISTERED'),
     ('ATTENDED', 'ATTENDED')
   ]
@@ -39,7 +41,7 @@ class EventRegistration(models.Model):
   event = models.ForeignKey(Event, related_name="registrations", on_delete=models.CASCADE)
   user = models.ForeignKey(CustomUser, to_field="email", related_name="registrant", on_delete=models.CASCADE)
   registration_date = models.DateTimeField(auto_now_add=True)
-  status = models.CharField(choices=STATUS_CHOICES, default='REGISTERED')
+  status = models.CharField(choices=STATUS_CHOICES, default='PENDING')
     
   
   def __str__(self):

@@ -16,12 +16,18 @@ class MemberPackage(models.Model):
     return self.name
 
 class MemberRegistration(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'PENDING'),
+        ('CANCELLED', 'CANCELLED'),
+        ('REGISTERED', 'REGISTERED'),
+    ]
     id = models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True)
     user = models.ForeignKey(CustomUser, to_field="email", related_name="member", on_delete=models.CASCADE)
     package = models.ForeignKey(MemberPackage, related_name='registrations', on_delete=models.CASCADE, blank=True, null=True)
     registration_date = models.DateTimeField(auto_now_add=True)
     expiry_date = models.DateTimeField(blank=True, null=True)
-    
+    status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='PENDING')
+
     def save(self, *args, **kwargs):
         if not self.expiry_date:
             self.expiry_date = timezone.now() + relativedelta(months=self.package.validity_month)

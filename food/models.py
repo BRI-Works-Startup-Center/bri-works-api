@@ -33,7 +33,9 @@ class FoodBeverage(models.Model):
   
 class Order(models.Model):
   STATUS_CHOICES = [
-    ('ORDERED', 'ORDERED'),
+    ('PENDING', 'PENDING'),
+    ('CANCELLED', 'CANCELLED'),
+    ('REGISTERED', 'REGISTERED'),
     ('PROCESSING', 'PROCESSING'),
     ('DONE', 'DONE')
   ]
@@ -42,7 +44,7 @@ class Order(models.Model):
   tenant = models.ForeignKey(Tenant, related_name='orders', on_delete=models.CASCADE)
   created_at = models.DateTimeField(auto_now_add=True)
   total_price = models.IntegerField(null=True, blank=True)
-  status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='DONE')
+  status = models.CharField(max_length=100, choices=STATUS_CHOICES, default='PENDING')
   def __str__(self):
     return f"Order {self.id} by {self.user.email}"
 

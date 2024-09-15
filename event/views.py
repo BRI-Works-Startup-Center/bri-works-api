@@ -6,6 +6,13 @@ from .models import Event, EventReview, EventRegistration
 from authentication.models import CustomUser
 from .serializers import EventSerializer, EventDetailSerializer, EventReviewSerializer, CreateEventReviewResponse, EventRegistrationSerializer, CreateEventRegistrationResponse, RetrieveEventRegistrationResponse, RetrieveEventRegistrationDetailResponse
 from django.utils import timezone
+from django.db.transaction import atomic
+from django.db.models import Q
+from payment.models import PaymentTransaction
+from .utils import send_invitation_email, generate_time_string
+
+import midtransclient
+import os
 
 class EventAPI(APIView):
   def get(self, request):
@@ -65,7 +72,7 @@ class EventReviewAPI(APIView):
     if not event:
       return Response({
         "message" : "No related event"}, status=status.HTTP_400_BAD_REQUEST)
-    registration_exist = EventRegistration.objects.filter(user=user_email, event=review_data['event']).exists()
+    registration_exist = EventRegistration.objects.filter(Q(status='REGISTERED') | Q(status='ATTENDED'),user=user_email, event=review_data['event']).exists()
     if not registration_exist:
       return Response({"message": "User is not registered to the event"}, status=status.HTTP_400_BAD_REQUEST)
     review_exist = EventReview.objects.filter(user=user_email, event=review_data['event']).exists()
@@ -98,32 +105,64 @@ class EventRegistrationAPI(APIView):
       return Response({
         'message': 'User has not been authenticated'
       }, status=status.HTTP_401_UNAUTHORIZED)
-    user_email = token[0].user
+    user = token[0].user
     registration_data = EventRegistrationSerializer(data=request.data)
     registration_data.is_valid(raise_exception = True)
     registration_data = registration_data.data
     event = Event.objects.get(pk=registration_data['event'])
-    print(event)
     if not event:
       return Response({"message": "No related event"}, status=status.HTTP_400_BAD_REQUEST)
-    registration = EventRegistration.objects.filter(user=user_email, event=registration_data['event']).exists()
+    registration = EventRegistration.objects.filter(Q(status='REGISTERED') | Q(status='ATTENDED'), user=user, event=registration_data['event']).exists()
     if registration:
       return Response({"message": "User already registered to the event"}, status=status.HTTP_409_CONFLICT)
-
-    new_registration = EventRegistration.objects.create(
-      event=event,
-      user=user_email
-    )
-    
-    new_registration.save()
+    with atomic():
+      new_registration = EventRegistration.objects.create(
+        event=event,
+        user=user
+      )
+      new_registration.save()
+      snap = midtransclient.Snap(
+        is_production = True if os.getenv('MIDTRANS_IS_PRODUCTION') == 'True' else False,
+        server_key = str(os.getenv('MIDTRANS_SERVER_KEY')),
+        client_key= str(os.getenv('MIDTRANS_CLIENT_KEY'))
+      )
+      order_id = f'event_{new_registration.id}'
+      event_price = event.price
+      event_name = event.title
+      snap_transaction = snap.create_transaction({
+        "transaction_details": {
+          "order_id": order_id,
+          "gross_amount": event_price
+        },
+        "item_details": {
+          "price": event_price,
+          "quantity": 1,
+          "name": event_name
+        }
+      })
+      snap_token = snap_transaction['token']
+      snap_redirect_url = snap_transaction['redirect_url']
+      new_payment = PaymentTransaction.objects.create(
+        order_id = f'event_{new_registration.id}',
+        type = 'EVENT',
+        gross_amount = event_price,
+        midtrans_token = snap_token,
+        redirect_url = snap_redirect_url,
+      )
+      new_payment.save()
     
     serializer = CreateEventRegistrationResponse(
       data={
         'message': 'Registration succesfully created.',
-        'data': registration_data
+        'data': {
+          'transaction_detail': {
+            'token': snap_token,
+            'redirect_url': snap_redirect_url
+          }, 
+          'event_registration': registration_data
+        }
       }
     )
-    
     serializer.is_valid(raise_exception=True)
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
@@ -163,7 +202,7 @@ class UpcomingEventAPI(APIView):
       }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     now = timezone.now()
-    event_registrations = EventRegistration.objects.filter(user=user_email, event__end_time__gte=now).select_related('event').order_by('event__start_time')
+    event_registrations = EventRegistration.objects.filter(user=user_email, event__end_time__gte=now, status='REGISTERED').select_related('event').order_by('event__start_time')
     serializer = RetrieveEventRegistrationResponse(event_registrations, many=True)
     response_data = {
       'message': 'Succesfully retrieved',
@@ -181,7 +220,10 @@ class AttendedEventAPI(APIView):
       }, status=status.HTTP_401_UNAUTHORIZED)
     user_email = token[0].user
     now = timezone.now()
-    event_registrations = EventRegistration.objects.filter(user=user_email, event__end_time__lt=now).select_related('event').order_by('event__start_time')
+    event_registrations = EventRegistration.objects.filter(
+      Q(status = 'REGISTERED') | Q(status='ATTENDED'),
+      user=user_email,
+      event__end_time__lt=now).select_related('event').order_by('event__start_time')
     serializer = RetrieveEventRegistrationResponse(event_registrations, many=True)
     response_data = {
       'message': 'Succesfully retrieved',

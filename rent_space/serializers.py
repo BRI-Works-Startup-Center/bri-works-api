@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Space, SpaceReservation, SpaceReservationInvitation, SpaceReview 
+from payment.serializers import CreateSnapPaymentResponse
 
 class SpaceSerializer(serializers.ModelSerializer):
   class Meta:
@@ -12,6 +13,7 @@ class SpaceDetailSerializer(serializers.ModelSerializer):
     fields = ["id", "location", "size", "name", "capacity", "hourly_price", "daily_price", "picture", "description", "tv_facility", "wifi_facility", "sound_system_facility"]
 
 class SpaceReservationSerializer(serializers.ModelSerializer):
+  id = serializers.CharField(required=False)
   class Meta:
     model = SpaceReservation
     fields = '__all__'
@@ -29,7 +31,7 @@ class RetrieveSpaceReservationResponse(serializers.ModelSerializer):
   space_id = SpaceSerializer()
   class Meta:
     model = SpaceReservation
-    fields = ['id', 'space_id', 'start_time', 'end_time']
+    fields = ['id', 'space_id', 'start_time', 'end_time', 'status']
 class RetrieveSpaceReservationDetailResponse(serializers.ModelSerializer):
   space_id = SpaceDetailSerializer()
   class Meta:
@@ -52,3 +54,7 @@ class SpaceReviewSerializer(serializers.ModelSerializer):
   class Meta:
     model = SpaceReview
     fields = '__all__'
+    
+class CreateSpaceReservationResponse(serializers.Serializer):
+  transaction_details = CreateSnapPaymentResponse()
+  space_reservation = SpaceReservationSerializer()

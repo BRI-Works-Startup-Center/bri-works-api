@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Tenant, FoodBeverage, Order, OrderItem, TenantReview
+from payment.serializers import CreateSnapPaymentResponse
 
 class TenantSerializer(serializers.ModelSerializer):
   class Meta:
@@ -52,6 +53,7 @@ class OrderItemResponse(serializers.ModelSerializer):
     fields = ['item', 'quantity', 'total_price']
     
 class OrderSerializer(serializers.ModelSerializer):
+  id = serializers.CharField(required=False)
   order_items = OrderItemSerializer(many=True)
   class Meta:
     model = Order
@@ -91,4 +93,8 @@ class OrderItemResponse(serializers.ModelSerializer):
   class Meta:
     model = OrderItem
     fields = ['item', 'quantity', 'total_price']
+    
+class CreateOrderResponse(serializers.Serializer):
+  transaction_details = CreateSnapPaymentResponse()
+  order = OrderSerializer()
   
