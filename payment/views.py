@@ -224,12 +224,17 @@ class MemberRegistrationPaymentStatusAPI(APIView):
     })
 
 
-class PaymentSuccessPageView(TemplateView):
-  template_name = 'payment-success.html'
-
-class PaymentFailedPageView(TemplateView):
-  template_name = 'payment-fail.html'
-      
+class PaymentPageView(TemplateView):
+  template_name = 'payment-finish.html'
+  def get_context_data(self, **kwargs):
+      context = super().get_context_data()
+      transaction_status = self.request.GET.get('transaction_status', 'pending')
+      success_statuses = {'capture', 'settlement'}
+      context_status = 'fail'
+      if transaction_status in success_statuses:
+         context_status = 'success'
+      context['status'] = context_status
+      return context
     
 
 # Create your views here.

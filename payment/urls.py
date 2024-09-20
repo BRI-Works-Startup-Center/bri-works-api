@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import PaymentFailedPageView, PaymentNotificationCallbackAPI, EventRegistrationPaymentStatusAPI, SpaceReservationPaymentStatusAPI, FoodOrderPaymentStatusAPI, MemberRegistrationPaymentStatusAPI, PaymentSuccessPageView
+from .views import PaymentNotificationCallbackAPI, EventRegistrationPaymentStatusAPI, SpaceReservationPaymentStatusAPI, FoodOrderPaymentStatusAPI, MemberRegistrationPaymentStatusAPI, PaymentPageView
 
 urlpatterns = [
     path('notification', PaymentNotificationCallbackAPI.as_view()),
@@ -7,6 +7,5 @@ urlpatterns = [
     path('status/space', SpaceReservationPaymentStatusAPI.as_view()),
     path('status/food', FoodOrderPaymentStatusAPI.as_view()), 
     path('status/member', MemberRegistrationPaymentStatusAPI.as_view()),
-    path('success-page', PaymentSuccessPageView.as_view()),
-    path('fail-page', PaymentFailedPageView.as_view()),
+    path('finish-page', PaymentPageView.as_view()),
 ]

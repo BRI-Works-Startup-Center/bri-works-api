@@ -29,6 +29,10 @@
       color: green;
       font-size: 75px;
     }
+    .fail-icon {
+      color: red;
+      font-size: 75px;
+    }
     .confirmation-info {
       color: gray
     }
@@ -37,9 +41,15 @@
 <body>
   <div class="center-position">
     <div class="container">
-      <i class="fas fa-check-circle success-icon"></i>
-      <h1 class="success-text">Transaksi berhasil</h1>
-      <p class="confirmation-info">Klik "Saya sudah bayar" untuk melanjutkan</p>
+      {% if status == "success"%}
+        <i class="fas fa-check-circle success-icon"></i>
+        <h1 class="success-text">Transaksi berhasil</h1>
+        <p class="confirmation-info">Klik "Saya sudah bayar" untuk melanjutkan</p>
+      {% else %}
+        <i class="fas fa-ban fail-icon"></i>
+        <h1 class="success-text">Transaksi gagal</h1>
+        <p class="confirmation-info">Silahkan kembali atau ulangi transaksi</p>
+      {% endif %}
     </div>
   </div>
 </body>
