@@ -118,13 +118,6 @@ class SpaceReservationAPI(APIView):
         redirect_url = snap_redirect_url,
       )
       new_payment.save()
-      
-      new_invitation = SpaceReservationInvitation.objects.create(
-        space_reservation = new_reservation,
-        user = user_email
-      )
-    
-      new_invitation.save()
     
     serializer =  CreateSpaceReservationResponse(data={
       'transaction_details': {
@@ -183,8 +176,11 @@ class SpaceReservationInvitationAPI(APIView):
         qr_code_list.append(invitation.id)
         response_data['data'].append(SpaceReservationInvitationSerializer(invitation).data)
         print(email)
-    reserver_invitation = SpaceReservationInvitation.objects.get(space_reservation = reservation, user=reserver)
-  
+      reserver_invitation = SpaceReservationInvitation.objects.create(
+          space_reservation = reservation,
+          user = reserver
+        )
+      reserver_invitation.save()  
     invitation_data['list_email'].append(reserver.email)
     qr_code_list.append(reserver_invitation.id)
     
