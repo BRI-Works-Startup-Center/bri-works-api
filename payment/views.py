@@ -12,7 +12,7 @@ from food.models import Order
 from member_registration.models import MemberRegistration
 from event.utils import send_invitation_email, generate_time_string
 from rest_framework.authtoken.models import Token
-
+from django.views.generic import TemplateView
 class PaymentNotificationCallbackAPI(APIView):
   def post(self, request):
     request_data = MidtransCallbackRequest(data=request.data)
@@ -222,6 +222,13 @@ class MemberRegistrationPaymentStatusAPI(APIView):
       'message': 'Succesfully retrieved',
       'data': serializer.data
     })
+
+
+class PaymentSuccessPageView(TemplateView):
+  template_name = 'payment-success.html'
+
+class PaymentFailedPageView(TemplateView):
+  template_name = 'payment-fail.html'
       
     
 
