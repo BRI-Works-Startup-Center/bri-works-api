@@ -13,6 +13,9 @@ from member_registration.models import MemberRegistration
 from event.utils import send_invitation_email, generate_time_string
 from rest_framework.authtoken.models import Token
 from django.views.generic import TemplateView
+
+import os
+
 class PaymentNotificationCallbackAPI(APIView):
   def post(self, request):
     request_data = MidtransCallbackRequest(data=request.data)
@@ -224,7 +227,7 @@ class MemberRegistrationPaymentStatusAPI(APIView):
     })
 
 
-class PaymentPageView(TemplateView):
+class PaymentFinishPageView(TemplateView):
   template_name = 'payment-finish.html'
   def get_context_data(self, **kwargs):
       context = super().get_context_data()
@@ -234,6 +237,14 @@ class PaymentPageView(TemplateView):
       if transaction_status in success_statuses:
          context_status = 'success'
       context['status'] = context_status
+      return context
+
+class PaymentPageView(TemplateView):
+  template_name = 'payment-page.html'
+  def get_context_data(self, **kwargs):
+      context = super().get_context_data()
+      midtrans_client_key = os.getenv('MIDTRANS_CLIENT_KEY')
+      context['client_key'] = midtrans_client_key
       return context
     
 
