@@ -245,6 +245,7 @@ class PaymentPageView(TemplateView):
       context = super().get_context_data()
       midtrans_client_key = os.getenv('MIDTRANS_CLIENT_KEY')
       context['client_key'] = midtrans_client_key
+      context['is_prod'] = os.getenv('MIDTRANS_IS_PRODUCTION')
       return context
     
 
